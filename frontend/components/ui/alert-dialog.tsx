@@ -106,20 +106,26 @@ export function AlertDialogContent({
         position: "fixed",
         inset: 0,
         zIndex: 999,
-        backgroundColor: "rgba(15, 23, 20, 0.45)",
-        backdropFilter: "blur(8px)",
-        WebkitBackdropFilter: "blur(8px)",
         display: "grid",
         placeItems: "center",
         padding: "20px",
       }}
-      onClick={() => setOpen(false)}
     >
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          backgroundColor: "rgba(15, 23, 20, 0.45)",
+        }}
+        onClick={() => setOpen(false)}
+      />
       <div
         role="alertdialog"
         aria-modal="true"
         className={cn("calendar-modal-content", className)}
         style={{
+          position: "relative",
+          zIndex: 1,
           width: maxWidths[size] || maxWidths.default,
           borderRadius: "24px",
           backgroundColor: "#ffffff",
@@ -215,7 +221,7 @@ export function AlertDialogAction({
         padding: "9px 20px",
         border: "0",
         borderRadius: "999px",
-        backgroundColor: "#17211e",
+        backgroundColor: "var(--theme-primary, #17211e)",
         color: "#ffffff",
         fontSize: "13px",
         fontWeight: 700,

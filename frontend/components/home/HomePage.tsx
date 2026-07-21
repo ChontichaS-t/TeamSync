@@ -25,9 +25,9 @@ type ProjectItem = {
 
 const INITIAL_PROJECTS: ProjectItem[] = [
   { id: 1, title: "Badminton Tournament System", cover: "/new/newsea.jpg", tags: "blue", deadline: "กำหนดส่ง 30 กันยายน 2026", progress: 65, members: ["/cv1.png"] },
-  { id: 2, title: "Badminton Tournament System", cover: "/new/newtrain.jpg", tags: "orange", deadline: "กำหนดส่ง 30 กันยายน 2026", progress: 65, members: ["/cv1.png"] },
+  { id: 2, title: "Badminton Tournament System", cover: "/new/newtrain.jpg", tags: "purple", deadline: "กำหนดส่ง 30 กันยายน 2026", progress: 65, members: ["/cv1.png"] },
   { id: 3, title: "Badminton Tournament System", cover: "/new/newrabbit.jpg", tags: "pink", deadline: "กำหนดส่ง 30 กันยายน 2026", progress: 65, members: ["/cv1.png"] },
-  { id: 4, title: "Badminton Tournament System", cover: "/new/newgrli.jpg", tags: "purple", deadline: "กำหนดส่ง 30 กันยายน 2026", progress: 65, members: ["/cv1.png"] },
+  { id: 4, title: "Badminton Tournament System", cover: "/new/newgrli.jpg", tags: "brown", deadline: "กำหนดส่ง 30 กันยายน 2026", progress: 65, members: ["/cv1.png"] },
   { id: 5, title: "Badminton Tournament System", cover: "/new/newwindow.jpg", tags: "red", deadline: "กำหนดส่ง 30 กันยายน 2026", progress: 65, members: ["/cv1.png"] },
 ];
 

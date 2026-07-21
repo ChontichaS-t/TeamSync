@@ -4,9 +4,10 @@ import React, { useState, useMemo, useRef, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
-import { Plus, Search, X, Calendar as CalendarIcon, ChevronDown } from "lucide-react";
+import { Plus, Search, X, Calendar as CalendarIcon, ChevronDown, MoreHorizontal, Trash2, Edit } from "lucide-react";
 import { CalendarDemo } from "@/components/global/CalendarDemo";
 import { Combobox } from "@/components/ui/combobox";
+import { AlertDialogSmall } from "@/components/global/AlertDialogSmall";
 
 export type TaskStatus = "ยังไม่เริ่ม" | "กำลังทำ" | "รอตรวจ" | "เสร็จแล้ว";
 
@@ -24,6 +25,7 @@ export interface MemberItem {
   name: string;
   role: string;
   currentTasks: string;
+  avatarUrl?: string;
 }
 
 export interface FeedbackItem {
@@ -300,10 +302,10 @@ function formatThaiDate(date?: Date): string {
 
 const THEME_MAP = {
   "/new/newsea.jpg": { primary: "#1a77a6", hover: "#13587b", shadow: "rgba(26, 119, 166, 0.2)" },
-  "/new/newtrain.jpg": { primary: "#351e7a", hover: "#251458", shadow: "rgba(53, 30, 122, 0.2)" },
+  "/new/newtrain.jpg": { primary: "#351e7a", hover: "#2d0c90ff", shadow: "rgba(53, 30, 122, 0.2)" },
   "/new/newrabbit.jpg": { primary: "#db2777", hover: "#be185d", shadow: "rgba(219, 39, 119, 0.2)" },
-  "/new/newgrli.jpg": { primary: "#c2410c", hover: "#9a3412", shadow: "rgba(194, 65, 12, 0.2)" },
-  "/new/newwindow.jpg": { primary: "#F87B1B", hover: "#c76214", shadow: "rgba(248, 123, 27, 0.2)" },
+  "/new/newgrli.jpg": { primary: "#5D4037", hover: "#3E2723", shadow: "rgba(93, 64, 55, 0.2)" },
+  "/new/newwindow.jpg": { primary: "#bb5b12ff", hover: "#bc5b10ff", shadow: "rgba(248, 123, 27, 0.2)" },
   "/new/newbed.jpg": { primary: "#1a77a6", hover: "#13587b", shadow: "rgba(26, 119, 166, 0.2)" },
   "/new/newboy.jpg": { primary: "#1a77a6", hover: "#13587b", shadow: "rgba(26, 119, 166, 0.2)" },
   "/new/newdog.jpg": { primary: "#16a34a", hover: "#15803d", shadow: "rgba(22, 163, 74, 0.2)" },
@@ -330,6 +332,7 @@ export default function ProjectPage() {
   const [feedbackList, setFeedbackList] = useState<FeedbackItem[]>(initialFeedback);
   const [meetings, setMeetings] = useState<MeetingItem[]>(initialMeetings);
   const [timeline, setTimeline] = useState<TimelineItem[]>(initialTimeline);
+  const [members, setMembers] = useState<MemberItem[]>(initialMembers);
 
   const [taskFilterStatus, setTaskFilterStatus] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
@@ -338,6 +341,11 @@ export default function ProjectPage() {
   const [isAddTaskModalOpen, setIsAddTaskModalOpen] = useState(false);
   const [isAddFeedbackModalOpen, setIsAddFeedbackModalOpen] = useState(false);
   const [isAddMeetingModalOpen, setIsAddMeetingModalOpen] = useState(false);
+  const [isAddMemberModalOpen, setIsAddMemberModalOpen] = useState(false);
+
+  const [newMemberName, setNewMemberName] = useState("");
+  const [newMemberRole, setNewMemberRole] = useState("");
+  const [selectedAvatar, setSelectedAvatar] = useState("/cv1.png");
 
   // Task Due Date Calendar State (Using CalendarDemo)
   const [taskDueDate, setTaskDueDate] = useState<Date | undefined>(new Date(2026, 6, 28));
@@ -349,6 +357,30 @@ export default function ProjectPage() {
 
   // Task Date Editing Popup
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
+
+  // Member actions state
+  const [activeMenuMemberName, setActiveMenuMemberName] = useState<string | null>(null);
+  const [deletingMember, setDeletingMember] = useState<MemberItem | null>(null);
+  const [editingMember, setEditingMember] = useState<MemberItem | null>(null);
+
+  const handleDeleteMember = (name: string) => {
+    setMembers((prev) => prev.filter((m) => m.name !== name));
+    setTimeline((prevTl) => [
+      {
+        id: generateUniqueId("tl"),
+        date: "วันนี้",
+        event: `ลบสมาชิก '${name}' ออกจากทีม`,
+      },
+      ...prevTl,
+    ]);
+  };
+
+  useEffect(() => {
+    if (!activeMenuMemberName) return;
+    const handleOutsideClick = () => setActiveMenuMemberName(null);
+    window.addEventListener("click", handleOutsideClick);
+    return () => window.removeEventListener("click", handleOutsideClick);
+  }, [activeMenuMemberName]);
 
   // Form Inputs
   const [newTaskTitle, setNewTaskTitle] = useState("");
@@ -609,7 +641,7 @@ export default function ProjectPage() {
             ภาพรวมโปรเจกต์
           </button>
           <button onClick={() => setActiveTab("members_timeline")} className={`sec-tab ${activeTab === "members_timeline" ? "active" : ""}`}>
-            สมาชิก & Timeline ({initialMembers.length})
+            สมาชิก & Timeline ({members.length})
           </button>
           <button onClick={() => setActiveTab("tasks")} className={`sec-tab ${activeTab === "tasks" ? "active" : ""}`}>
             แบ่งงานและติดตามสถานะ ({tasks.length})
@@ -622,63 +654,257 @@ export default function ProjectPage() {
           </button>
         </div>
 
-        {/* MEMBERS & TIMELINE SIDE-BY-SIDE */}
+        {/* SECTION 1: MEMBERS & ROLES */}
         {(activeTab === "all" || activeTab === "members_timeline") && (
-          <div className="members-timeline-container">
-            {/* SECTION 1: MEMBERS & ROLES */}
-            <div className="section-block">
-              <div className="section-header-bar">
-                <h2 className="section-header-title">สมาชิกและหน้าที่ในทีม</h2>
-                <span className="section-header-sub">ตอบว่าใครอยู่ในทีมและใครรับผิดชอบอะไร</span>
+          <div style={{ marginBottom: "30px", width: "100%" }}>
+              <div className="section-header-bar" style={{ borderBottom: "none", paddingBottom: "10px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <h2 className="section-header-title" style={{ margin: 0 }}>สมาชิกและหน้าที่ในทีม</h2>
+                <button
+                  type="button"
+                  className="btn-navy"
+                  style={{ height: "34px" }}
+                  onClick={() => {
+                    setEditingMember(null);
+                    setNewMemberName("");
+                    setNewMemberRole("");
+                    setSelectedAvatar("/cv1.png");
+                    setIsAddMemberModalOpen(true);
+                  }}
+                >
+                  <Plus className="w-4 h-4" />
+                  เพิ่มสมาชิก
+                </button>
               </div>
-              <div className="section-body" style={{ padding: 0 }}>
-                <table className="ts-table">
-                  <thead>
-                    <tr>
-                      <th>สมาชิก</th>
-                      <th>บทบาท</th>
-                      <th>งานปัจจุบัน</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {initialMembers.map((m) => (
-                      <tr key={m.name}>
-                        <td>
-                          <div className="member-cell">
-                            <div className="member-avatar-circle">{m.name.charAt(0)}</div>
-                            <span>{m.name}</span>
-                          </div>
-                        </td>
-                        <td style={{ color: "#475569", fontWeight: 500 }}>{m.role}</td>
-                        <td>
-                          <span className="status-pill status-doing">{m.currentTasks}</span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+              <div style={{ padding: "8px 0" }}>
+                <div
+                  className="members-list-scroll"
+                  style={{
+                    display: "flex",
+                    flexWrap: "nowrap",
+                    gap: "20px",
+                    overflowX: "auto",
+                    padding: "8px 4px 16px",
+                    width: "100%",
+                    scrollBehavior: "smooth",
+                  }}
+                >
+                  {members.map((m, idx) => {
+                    const avatarUrl = m.avatarUrl || `/cv${(idx % 5) + 1}.png`;
+                    return (
+                      <div
+                        key={m.name}
+                        style={{
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "center",
+                          textAlign: "center",
+                          width: "200px",
+                          height: "270px",
+                          padding: "16px",
+                          backgroundColor: "#ffffff",
+                          borderRadius: "24px",
+                          border: "1px solid #e2e8f0",
+                          boxShadow: "0 10px 25px rgba(0, 0, 0, 0.02), 0 3px 10px rgba(0, 0, 0, 0.01)",
+                          justifyContent: "space-between",
+                          boxSizing: "border-box",
+                          flexShrink: 0,
+                          position: "relative",
+                        }}
+                      >
+                        {/* 3-Dots Button & Actions Menu */}
+                        <div style={{ position: "absolute", top: "12px", right: "12px", zIndex: 10 }}>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setActiveMenuMemberName(activeMenuMemberName === m.name ? null : m.name);
+                            }}
+                            style={{
+                              background: "none",
+                              border: "none",
+                              cursor: "pointer",
+                              padding: "4px",
+                              display: "grid",
+                              placeItems: "center",
+                              color: "#64748b",
+                              borderRadius: "999px",
+                              transition: "background-color 0.15s ease",
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#f1f5f9"}
+                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "transparent"}
+                          >
+                            <MoreHorizontal style={{ width: 16, height: 16 }} />
+                          </button>
 
-            {/* SECTION 5: TIMELINE */}
-            <div className="section-block">
-              <div className="section-header-bar">
-                <h2 className="section-header-title">Timeline ประวัติโปรเจกต์</h2>
-                <span style={{ fontSize: "12px", color: "#cbd5e1" }}>ช่วยให้สมาชิกตามบริบทโปรเจกต์ได้ทัน</span>
-              </div>
-              <div className="section-body">
-                <div className="timeline-list">
-                  {timeline.map((item) => (
-                    <div key={item.id} className="timeline-row">
-                      <div className="timeline-date">{item.date}</div>
-                      <div className="timeline-event">{item.event}</div>
-                    </div>
-                  ))}
+                          {/* Action Dropdown */}
+                          {activeMenuMemberName === m.name && (
+                            <div
+                              style={{
+                                position: "absolute",
+                                top: "100%",
+                                right: 0,
+                                zIndex: 20,
+                                minWidth: "120px",
+                                backgroundColor: "#ffffff",
+                                border: "1px solid #e2e8f0",
+                                borderRadius: "12px",
+                                boxShadow: "0 10px 25px rgba(0, 0, 0, 0.12)",
+                                padding: "4px",
+                              }}
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setEditingMember(m);
+                                  setNewMemberName(m.name);
+                                  setNewMemberRole(m.role);
+                                  setSelectedAvatar(m.avatarUrl || "/cv1.png");
+                                  setIsAddMemberModalOpen(true);
+                                  setActiveMenuMemberName(null);
+                                }}
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: "8px",
+                                  width: "100%",
+                                  padding: "8px 12px",
+                                  border: "none",
+                                  borderRadius: "8px",
+                                  backgroundColor: "transparent",
+                                  color: "#334155",
+                                  fontSize: "12px",
+                                  fontWeight: 600,
+                                  cursor: "pointer",
+                                  textAlign: "left",
+                                }}
+                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#f1f5f9"}
+                                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "transparent"}
+                              >
+                                <Edit style={{ width: 14, height: 14 }} />
+                                <span>แก้ไขข้อมูล</span>
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setDeletingMember(m);
+                                  setActiveMenuMemberName(null);
+                                }}
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: "8px",
+                                  width: "100%",
+                                  padding: "8px 12px",
+                                  border: "none",
+                                  borderRadius: "8px",
+                                  backgroundColor: "transparent",
+                                  color: "#ef4444",
+                                  fontSize: "12px",
+                                  fontWeight: 600,
+                                  cursor: "pointer",
+                                  textAlign: "left",
+                                  marginTop: "4px",
+                                }}
+                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#fef2f2"}
+                                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "transparent"}
+                              >
+                                <Trash2 style={{ width: 14, height: 14 }} />
+                                <span>ลบสมาชิก</span>
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                        {/* Role Badge (Top) */}
+                        <div
+                          style={{
+                            fontSize: "11px",
+                            color: "#4e6178",
+                            fontWeight: 600,
+                            backgroundColor: "#f0f4f8",
+                            padding: "4px 12px",
+                            borderRadius: "999px",
+                          }}
+                        >
+                          {m.role}
+                        </div>
+
+                        {/* Profile Image (Middle 1) & Name & Current Tasks */}
+                        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "8px", width: "100%" }}>
+                          <Image
+                            src={avatarUrl}
+                            alt={`${m.name}'s profile`}
+                            width={80}
+                            height={80}
+                            style={{
+                              objectFit: "contain",
+                              flexShrink: 0,
+                            }}
+                          />
+                          <h3
+                            style={{
+                              margin: 0,
+                              fontSize: "16px",
+                              fontWeight: 900,
+                              color: "#11223e",
+                              letterSpacing: "-0.3px",
+                            }}
+                          >
+                            {m.name}
+                          </h3>
+                          <div
+                            style={{
+                              fontSize: "13px",
+                              fontWeight: 700,
+                              color: "var(--theme-primary)",
+                            }}
+                          >
+                            {m.currentTasks}
+                          </div>
+                        </div>
+
+                        {/* Button (Bottom) */}
+                        <button
+                          type="button"
+                          style={{
+                            width: "100%",
+                            padding: "9px 16px",
+                            borderRadius: "999px",
+                            backgroundColor: "var(--theme-primary)",
+                            color: "#ffffff",
+                            fontSize: "12px",
+                            fontWeight: 700,
+                            border: "none",
+                            cursor: "pointer",
+                            transition: "all 0.15s ease",
+                            boxShadow: "0 6px 12px var(--theme-primary-shadow, rgba(0, 0, 0, 0.12))",
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = "var(--theme-primary-hover)";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = "var(--theme-primary)";
+                          }}
+                          onClick={() => {
+                            setSearchQuery(m.name);
+                            setActiveTab("tasks");
+                            // Smooth scroll to tasks section
+                            const tasksSection = document.getElementById("works");
+                            if (tasksSection) {
+                              tasksSection.scrollIntoView({ behavior: "smooth" });
+                            }
+                          }}
+                        >
+                          งานที่รับผิดชอบ
+                        </button>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
         {/* SECTION 2: TASKS & STATUS */}
         {(activeTab === "all" || activeTab === "tasks") && (
@@ -860,7 +1086,25 @@ export default function ProjectPage() {
           </div>
         )}
 
-
+        {/* SECTION 5: TIMELINE */}
+        {(activeTab === "all" || activeTab === "members_timeline") && (
+          <div className="section-block" style={{ marginTop: "28px" }}>
+            <div className="section-header-bar">
+              <h2 className="section-header-title">Timeline ประวัติโปรเจกต์</h2>
+              <span style={{ fontSize: "12px", color: "#cbd5e1" }}>ช่วยให้สมาชิกตามบริบทโปรเจกต์ได้ทัน</span>
+            </div>
+            <div className="section-body">
+              <div className="timeline-list">
+                {timeline.map((item) => (
+                  <div key={item.id} className="timeline-row">
+                    <div className="timeline-date">{item.date}</div>
+                    <div className="timeline-event">{item.event}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
 
       </div>
 
@@ -891,7 +1135,7 @@ export default function ProjectPage() {
                 <div>
                   <label className="form-label">ผู้รับผิดชอบ</label>
                   <Combobox
-                    options={["Chonticha", "Beam", "Jane"]}
+                    options={members.map((m) => m.name)}
                     value={newTaskAssignee}
                     onChange={(val) => setNewTaskAssignee(val)}
                     placeholder="เลือกผู้รับผิดชอบ..."
@@ -992,7 +1236,7 @@ export default function ProjectPage() {
                 <div>
                   <label className="form-label">ผู้รับผิดชอบหลัก</label>
                   <Combobox
-                    options={["Chonticha", "Beam", "Jane"]}
+                    options={members.map((m) => m.name)}
                     value={newFbAssignee}
                     onChange={(val) => setNewFbAssignee(val)}
                     placeholder="เลือกผู้รับผิดชอบ..."
@@ -1119,6 +1363,187 @@ export default function ProjectPage() {
           </div>
         </div>
       )}
+      {/* MODAL 4: Add Member */}
+      {isAddMemberModalOpen && (
+        <div className="modal-backdrop" style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(15, 23, 42, 0.4)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 9999 }}>
+          {/* Backdrop Overlay sibling without blur */}
+          <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, zIndex: -1 }} onClick={() => setIsAddMemberModalOpen(false)} />
+          
+          <div className="modal-dialog" style={{ width: "420px", backgroundColor: "#ffffff", borderRadius: "24px", padding: "24px", boxShadow: "0 20px 40px rgba(0, 0, 0, 0.1)", zIndex: 1, border: "1px solid #e2e8f0" }}>
+            <div className="modal-title-bar" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+              <h3 style={{ margin: 0, fontSize: "18px", fontWeight: 800, color: "#0f172a" }}>
+                {editingMember ? "แก้ไขข้อมูลสมาชิก" : "เพิ่มสมาชิกทีมใหม่"}
+              </h3>
+              <button onClick={() => { setIsAddMemberModalOpen(false); setEditingMember(null); }} style={{ border: "none", background: "none", cursor: "pointer", padding: "4px" }}>
+                <X className="w-5 h-5" style={{ color: "#64748b" }} />
+              </button>
+            </div>
+
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              if (!newMemberName.trim() || !newMemberRole.trim()) return;
+
+              if (editingMember) {
+                // Update existing member
+                setMembers((prev) =>
+                  prev.map((m) =>
+                    m.name === editingMember.name
+                      ? { ...m, name: newMemberName.trim(), role: newMemberRole.trim(), avatarUrl: selectedAvatar }
+                      : m
+                  )
+                );
+
+                // Update task and feedback assignees if name changed
+                if (newMemberName.trim() !== editingMember.name) {
+                  setTasks((prev) =>
+                    prev.map((t) =>
+                      t.assignee === editingMember.name ? { ...t, assignee: newMemberName.trim() } : t
+                    )
+                  );
+                  setFeedbackList((prev) =>
+                    prev.map((f) =>
+                      f.assignee === editingMember.name ? { ...f, assignee: newMemberName.trim() } : f
+                    )
+                  );
+                }
+
+                setTimeline((prevTl) => [
+                  {
+                    id: generateUniqueId("tl"),
+                    date: "วันนี้",
+                    event: `แก้ไขข้อมูลสมาชิก '${editingMember.name}' เป็น '${newMemberName.trim()}' (${newMemberRole.trim()})`,
+                  },
+                  ...prevTl,
+                ]);
+
+                setEditingMember(null);
+              } else {
+                // Add new member
+                const newMember: MemberItem = {
+                  name: newMemberName.trim(),
+                  role: newMemberRole.trim(),
+                  currentTasks: "กำลังทำ 0 งาน",
+                  avatarUrl: selectedAvatar,
+                };
+
+                setMembers((prev) => [...prev, newMember]);
+                
+                setTimeline((prevTl) => [
+                  {
+                    id: generateUniqueId("tl"),
+                    date: "วันนี้",
+                    event: `เพิ่มสมาชิกใหม่ '${newMember.name}' เข้าสู่ทีม ในตำแหน่ง ${newMember.role}`,
+                  },
+                  ...prevTl,
+                ]);
+              }
+
+              setNewMemberName("");
+              setNewMemberRole("");
+              setSelectedAvatar("/cv1.png");
+              setIsAddMemberModalOpen(false);
+            }}>
+              <div className="form-group" style={{ marginBottom: "16px" }}>
+                <label className="form-label" style={{ display: "block", marginBottom: "6px", fontSize: "13px", fontWeight: 600, color: "#334155" }}>ชื่อสมาชิก *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="เช่น สมชาย ใจดี"
+                  value={newMemberName}
+                  onChange={(e) => setNewMemberName(e.target.value)}
+                  className="form-input"
+                  style={{ width: "100%", padding: "10px 14px", border: "1px solid #cbd5e1", borderRadius: "10px", fontSize: "14px" }}
+                />
+              </div>
+
+              <div className="form-group" style={{ marginBottom: "16px" }}>
+                <label className="form-label" style={{ display: "block", marginBottom: "6px", fontSize: "13px", fontWeight: 600, color: "#334155" }}>ตำแหน่ง/หน้าที่ *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="เช่น Full-Stack Developer"
+                  value={newMemberRole}
+                  onChange={(e) => setNewMemberRole(e.target.value)}
+                  className="form-input"
+                  style={{ width: "100%", padding: "10px 14px", border: "1px solid #cbd5e1", borderRadius: "10px", fontSize: "14px" }}
+                />
+              </div>
+
+              <div className="form-group" style={{ marginBottom: "20px" }}>
+                <label className="form-label" style={{ display: "block", marginBottom: "8px", fontSize: "13px", fontWeight: 600, color: "#334155" }}>เลือกรูปโปรไฟล์ (CV Avatar)</label>
+                <div style={{ display: "flex", gap: "10px", justifyContent: "space-between" }}>
+                  {["/cv1.png", "/cv2.png", "/cv3.png", "/cv4.png", "/cv5.png"].map((cv) => (
+                    <div
+                      key={cv}
+                      onClick={() => setSelectedAvatar(cv)}
+                      style={{
+                        cursor: "pointer",
+                        padding: "6px",
+                        borderRadius: "14px",
+                        border: selectedAvatar === cv ? "2px solid var(--theme-primary)" : "2px solid transparent",
+                        backgroundColor: selectedAvatar === cv ? "var(--theme-primary-shadow, rgba(0,0,0,0.04))" : "transparent",
+                        transition: "all 0.15s ease",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <Image
+                        src={cv}
+                        alt="CV Avatar"
+                        width={45}
+                        height={45}
+                        style={{ objectFit: "contain" }}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px", marginTop: "24px" }}>
+                <button type="button" onClick={() => { setIsAddMemberModalOpen(false); setEditingMember(null); }} className="btn-outline" style={{ padding: "8px 16px", borderRadius: "999px", fontSize: "13px", fontWeight: 600, border: "1px solid #cbd5e1", cursor: "pointer", backgroundColor: "transparent" }}>
+                  ยกเลิก
+                </button>
+                <button
+                  type="submit"
+                  style={{
+                    padding: "8px 18px",
+                    borderRadius: "999px",
+                    backgroundColor: "var(--theme-primary)",
+                    color: "#ffffff",
+                    border: "none",
+                    fontSize: "13px",
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    boxShadow: "0 4px 10px var(--theme-primary-shadow, rgba(0,0,0,0.15))",
+                  }}
+                >
+                  {editingMember ? "บันทึกการแก้ไข" : "เพิ่มสมาชิก"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {/* Delete Member Confirmation Dialog */}
+      <AlertDialogSmall
+        open={!!deletingMember}
+        onOpenChange={(open) => {
+          if (!open) setDeletingMember(null);
+        }}
+        trigger={null}
+        title="ลบสมาชิกคนนี้?"
+        description={`คุณแน่ใจหรือไม่ว่าต้องการลบสมาชิก "${deletingMember?.name}" ออกจากโปรเจกต์นี้?`}
+        cancelText="ยกเลิก"
+        actionText="ลบสมาชิก"
+        variant="destructive"
+        onAction={() => {
+          if (deletingMember) {
+            handleDeleteMember(deletingMember.name);
+            setDeletingMember(null);
+          }
+        }}
+      />
 
     </div>
   );

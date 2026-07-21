@@ -88,7 +88,7 @@ const THEME_MAP = {
   "/new/newsea.jpg": { primary: "#1a77a6", hover: "#13587b", shadow: "rgba(26, 119, 166, 0.2)" },
   "/new/newtrain.jpg": { primary: "#351e7a", hover: "#251458", shadow: "rgba(53, 30, 122, 0.2)" },
   "/new/newrabbit.jpg": { primary: "#db2777", hover: "#be185d", shadow: "rgba(219, 39, 119, 0.2)" },
-  "/new/newgrli.jpg": { primary: "#c2410c", hover: "#9a3412", shadow: "rgba(194, 65, 12, 0.2)" },
+  "/new/newgrli.jpg": { primary: "#5D4037", hover: "#3E2723", shadow: "rgba(93, 64, 55, 0.2)" },
   "/new/newwindow.jpg": { primary: "#F87B1B", hover: "#c76214", shadow: "rgba(248, 123, 27, 0.2)" },
   "/new/newbed.jpg": { primary: "#1a77a6", hover: "#13587b", shadow: "rgba(26, 119, 166, 0.2)" },
   "/new/newboy.jpg": { primary: "#1a77a6", hover: "#13587b", shadow: "rgba(26, 119, 166, 0.2)" },
