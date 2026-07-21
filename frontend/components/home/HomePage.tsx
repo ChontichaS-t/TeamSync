@@ -1,7 +1,8 @@
 "use client";
 
-import { CalendarDays, FolderKanban, LogOut, MoreHorizontal } from "lucide-react";
+import { CalendarDays, FolderKanban, LogOut, MoreHorizontal, Plus, Search } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -10,11 +11,11 @@ type User = {
 };
 
 const projects = [
-  { id: 1, cover: "/pageblue.jpg" },
-  { id: 2, cover: "/pageorange.jpg" },
-  { id: 3, cover: "/pagepink.jpg" },
-  { id: 4, cover: "/pagepurple.jpg" },
-  { id: 5, cover: "/pagered.jpg" },
+  { id: 1, cover: "/pageblue.jpg", tags: "blue" },
+  { id: 2, cover: "/pageorange.jpg", tags: "orange" },
+  { id: 3, cover: "/pagepink.jpg", tags: "pink" },
+  { id: 4, cover: "/pagepurple.jpg", tags: "purple" },
+  { id: 5, cover: "/pagered.jpg", tags: "red" },
 ];
 
 const projectMembers = ["/cv1.png", "/cv2.png", "/cv3.png"];
@@ -24,6 +25,12 @@ export default function HomePage() {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const normalizedQuery = searchQuery.trim().toLowerCase();
+  const filteredProjects = projects.filter((project) =>
+    `badminton tournament system project 65% 2026 ${project.tags}`.includes(normalizedQuery),
+  );
 
   useEffect(() => {
     const controller = new AbortController();
@@ -74,6 +81,16 @@ export default function HomePage() {
         <a className="brand" href="/home" aria-label="TeamSync home">
           <span>TeamSync</span>
         </a>
+        <label className="home-navbar-search">
+          <Search aria-hidden="true" />
+          <input
+            type="search"
+            placeholder="Search tasks, projects, or team..."
+            aria-label="Search tasks, projects, or team"
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.target.value)}
+          />
+        </label>
         <button className="auth-navbar-cta home-logout-button" type="button" onClick={logout} disabled={isLoggingOut}>
           <LogOut aria-hidden="true" />
           <span>{isLoggingOut ? "Signing out..." : "Logout"}</span>
@@ -87,15 +104,26 @@ export default function HomePage() {
             <h1 id="home-title">Project room</h1>
             <p className="home-description">Everything your team is building, in one shared view.</p>
           </div>
-          <div className="home-project-count" aria-label="5 active projects">
-            <FolderKanban aria-hidden="true" />
-            <span><strong>5</strong> active projects</span>
+          <div className="home-heading-actions">
+            <div className="home-project-count" aria-label={`${filteredProjects.length} matching projects`}>
+              <FolderKanban aria-hidden="true" />
+              <span><strong>{filteredProjects.length}</strong> {normalizedQuery ? "results" : "active projects"}</span>
+            </div>
+            <button className="new-project-button" type="button">
+              <Plus aria-hidden="true" />
+              <span>New Project</span>
+            </button>
           </div>
         </header>
 
         <div className="project-grid" id="projects">
-          {projects.map((project, index) => (
-            <article className="project-card" key={project.id}>
+          {filteredProjects.map((project, index) => (
+            <Link
+              className="project-card"
+              href="/project"
+              aria-label={`Open Badminton Tournament System project ${index + 1}`}
+              key={project.id}
+            >
               <Image
                 className="project-cover-image"
                 src={project.cover}
@@ -141,8 +169,15 @@ export default function HomePage() {
                   <span className="project-member-count">3</span>
                 </div>
               </div>
-            </article>
+            </Link>
           ))}
+          {filteredProjects.length === 0 && (
+            <div className="project-empty-state" role="status">
+              <Search aria-hidden="true" />
+              <h2>No projects found</h2>
+              <p>Try another project name or color.</p>
+            </div>
+          )}
         </div>
       </section>
     </main>
