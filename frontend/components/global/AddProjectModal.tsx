@@ -24,9 +24,9 @@ export type AddProjectModalProps = {
 
 const COVER_OPTIONS = [
   { id: "blue", cover: "/new/newsea.jpg", label: "Sea Tone", tag: "blue" },
-  { id: "orange", cover: "/new/newtrain.jpg", label: "Train Tone", tag: "orange" },
+  { id: "purple", cover: "/new/newtrain.jpg", label: "Train Tone", tag: "purple" },
   { id: "pink", cover: "/new/newrabbit.jpg", label: "Rabbit Tone", tag: "pink" },
-  { id: "purple", cover: "/new/newgrli.jpg", label: "Girl Tone", tag: "purple" },
+  { id: "orange", cover: "/new/newgrli.jpg", label: "Girl Tone", tag: "orange" },
   { id: "red", cover: "/new/newwindow.jpg", label: "Window Tone", tag: "red" },
   { id: "bed", cover: "/new/newbed.jpg", label: "Bed Tone", tag: "bed" },
   { id: "boy", cover: "/new/newboy.jpg", label: "Boy Tone", tag: "boy" },

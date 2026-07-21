@@ -84,10 +84,33 @@ function toDateKey(date: Date): string {
   return `${y}-${m}-${d}`;
 }
 
+const THEME_MAP = {
+  "/new/newsea.jpg": { primary: "#1a77a6", hover: "#13587b", shadow: "rgba(26, 119, 166, 0.2)" },
+  "/new/newtrain.jpg": { primary: "#351e7a", hover: "#251458", shadow: "rgba(53, 30, 122, 0.2)" },
+  "/new/newrabbit.jpg": { primary: "#db2777", hover: "#be185d", shadow: "rgba(219, 39, 119, 0.2)" },
+  "/new/newgrli.jpg": { primary: "#c2410c", hover: "#9a3412", shadow: "rgba(194, 65, 12, 0.2)" },
+  "/new/newwindow.jpg": { primary: "#F87B1B", hover: "#c76214", shadow: "rgba(248, 123, 27, 0.2)" },
+  "/new/newbed.jpg": { primary: "#1a77a6", hover: "#13587b", shadow: "rgba(26, 119, 166, 0.2)" },
+  "/new/newboy.jpg": { primary: "#1a77a6", hover: "#13587b", shadow: "rgba(26, 119, 166, 0.2)" },
+  "/new/newdog.jpg": { primary: "#16a34a", hover: "#15803d", shadow: "rgba(22, 163, 74, 0.2)" },
+};
+
 export default function CalendarPage() {
   const searchParams = useSearchParams();
-  const coverImage = searchParams.get("cover");
+  const coverImage = searchParams.get("cover") || "/new/newsea.jpg";
   const projectTitle = searchParams.get("title") || "Badminton Tournament System";
+
+  const activeTheme = (THEME_MAP as Record<string, { primary: string; hover: string; shadow: string }>)[coverImage || ""] || {
+    primary: "#17211e",
+    hover: "#253631",
+    shadow: "rgba(23, 33, 30, 0.18)",
+  };
+
+  const dynamicStyle = {
+    "--theme-primary": activeTheme.primary,
+    "--theme-primary-hover": activeTheme.hover,
+    "--theme-primary-shadow": activeTheme.shadow,
+  } as React.CSSProperties;
 
   const [currentDate, setCurrentDate] = useState<Date>(new Date(2026, 6, 21)); // July 2026
   const [selectedDate, setSelectedDate] = useState<Date>(new Date(2026, 6, 21));
@@ -221,7 +244,7 @@ export default function CalendarPage() {
   }).format(selectedDate);
 
   return (
-    <div className="calendar-page-shell">
+    <div className="calendar-page-shell" style={dynamicStyle}>
 
       <nav className="project-navbar" aria-label="Project navigation">
         <Link className="brand" href="/home" aria-label="TeamSync home">
@@ -231,7 +254,10 @@ export default function CalendarPage() {
           <Link href="/home">Home</Link>
           <Link href={`/project${coverImage ? `?cover=${encodeURIComponent(coverImage)}` : ""}`}>Project</Link>
           <Link href={`/project${coverImage ? `?cover=${encodeURIComponent(coverImage)}` : ""}#works`}>Works</Link>
-          <Link className="project-navbar-active" href="/calendar">
+          <Link
+            className="project-navbar-active"
+            href={`/calendar?cover=${encodeURIComponent(coverImage)}&title=${encodeURIComponent(projectTitle)}`}
+          >
             Calendar
           </Link>
         </div>
@@ -241,7 +267,7 @@ export default function CalendarPage() {
         {/* Page Header */}
         <header className="calendar-heading">
           <div>
-            <h1>{projectTitle}</h1>
+            <h1 style={{ color: "var(--theme-primary)" }}>{projectTitle}</h1>
             <p>Plan milestones, reviews, and team sessions in an interactive grid.</p>
           </div>
           <button
@@ -345,93 +371,119 @@ export default function CalendarPage() {
         {/* Main Content Layout */}
         <section className="calendar-layout" aria-label="Project calendar content">
           {/* Left Main View (Grid or List) */}
-          <div className="calendar-panel">
-            {viewMode === "grid" ? (
-              <div className="calendar-grid-container">
-                {/* Weekday Row */}
-                <div className="calendar-weekdays-row">
-                  {WEEKDAYS.map((dayName) => (
-                    <div className="calendar-weekday-cell" key={dayName}>
-                      {dayName}
-                    </div>
-                  ))}
-                </div>
-
-                {/* 7x6 Date Cell Matrix */}
-                <div className="calendar-cells-grid">
-                  {calendarCells.map((cell) => {
-                    const dayEvts = eventsByDate[cell.dateKey] ?? [];
-                    return (
-                      <div
-                        key={cell.dateKey}
-                        className={`calendar-cell ${cell.isCurrentMonth ? "in-month" : "out-month"} ${
-                          cell.isSelected ? "selected" : ""
-                        } ${cell.isToday ? "today" : ""}`}
-                        onClick={() => setSelectedDate(cell.date)}
-                      >
-                        <div className="calendar-cell-header">
-                          <span className="calendar-cell-num">{cell.dayNum}</span>
-                          {cell.isToday && <span className="today-badge">Today</span>}
-                        </div>
-
-                        {/* Event Pills */}
-                        <div className="calendar-cell-events">
-                          {dayEvts.slice(0, 2).map((evt) => (
-                            <div
-                              key={evt.id}
-                              className="cell-event-pill"
-                              data-tone={evt.tone}
-                              title={`${evt.time} - ${evt.title}`}
-                            >
-                              <span className="pill-time">{evt.time}</span>
-                              <span className="pill-title">{evt.title}</span>
-                            </div>
-                          ))}
-                          {dayEvts.length > 2 && (
-                            <div className="cell-more-pill">
-                              +{dayEvts.length - 2} more
-                            </div>
-                          )}
-                        </div>
+          <div
+            className="calendar-panel"
+            style={
+              coverImage
+                ? {
+                    backgroundImage: `url(${coverImage})`,
+                    backgroundSize: "cover",
+                    backgroundPosition: "center",
+                    position: "relative",
+                    overflow: "hidden",
+                  }
+                : undefined
+            }
+          >
+            {coverImage && (
+              <div
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  backgroundColor: "rgba(255, 255, 255, 0.55)",
+                  backdropFilter: "blur(6px)",
+                  zIndex: 0,
+                }}
+              />
+            )}
+            <div style={{ position: "relative", zIndex: 1, display: "flex", flexDirection: "column", flex: 1 }}>
+              {viewMode === "grid" ? (
+                <div className="calendar-grid-container">
+                  {/* Weekday Row */}
+                  <div className="calendar-weekdays-row">
+                    {WEEKDAYS.map((dayName) => (
+                      <div className="calendar-weekday-cell" key={dayName}>
+                        {dayName}
                       </div>
-                    );
-                  })}
-                </div>
-              </div>
-            ) : (
-              /* List View fallback */
-              <div className="calendar-list-view">
-                <h3>All Scheduled Events</h3>
-                {filteredEvents.length === 0 ? (
-                  <p className="empty-text">No events scheduled.</p>
-                ) : (
-                  <div className="list-view-events">
-                    {filteredEvents.map((evt) => (
-                      <article
-                        key={evt.id}
-                        className="calendar-event"
-                        data-tone={evt.tone}
-                        onClick={() => {
-                          const [y, m, d] = evt.dateKey.split("-").map(Number);
-                          setSelectedDate(new Date(y, m - 1, d));
-                        }}
-                      >
-                        <div className="calendar-event-datekey">{evt.dateKey}</div>
-                        <div className="calendar-event-time">
-                          <Clock3 aria-hidden="true" />
-                          {evt.time}
-                        </div>
-                        <h3>{evt.title}</h3>
-                        <p>
-                          <MapPin aria-hidden="true" />
-                          {evt.location}
-                        </p>
-                      </article>
                     ))}
                   </div>
-                )}
-              </div>
-            )}
+
+                  {/* 7x6 Date Cell Matrix */}
+                  <div className="calendar-cells-grid">
+                    {calendarCells.map((cell) => {
+                      const dayEvts = eventsByDate[cell.dateKey] ?? [];
+                      return (
+                        <div
+                          key={cell.dateKey}
+                          className={`calendar-cell ${cell.isCurrentMonth ? "in-month" : "out-month"} ${
+                            cell.isSelected ? "selected" : ""
+                          } ${cell.isToday ? "today" : ""}`}
+                          onClick={() => setSelectedDate(cell.date)}
+                        >
+                          <div className="calendar-cell-header">
+                            <span className="calendar-cell-num">{cell.dayNum}</span>
+                            {cell.isToday && <span className="today-badge">Today</span>}
+                          </div>
+
+                          {/* Event Pills */}
+                          <div className="calendar-cell-events">
+                            {dayEvts.slice(0, 2).map((evt) => (
+                              <div
+                                key={evt.id}
+                                className="cell-event-pill"
+                                data-tone={evt.tone}
+                                title={`${evt.time} - ${evt.title}`}
+                              >
+                                <span className="pill-time">{evt.time}</span>
+                                <span className="pill-title">{evt.title}</span>
+                              </div>
+                            ))}
+                            {dayEvts.length > 2 && (
+                              <div className="cell-more-pill">
+                                +{dayEvts.length - 2} more
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : (
+                /* List View fallback */
+                <div className="calendar-list-view">
+                  <h3>All Scheduled Events</h3>
+                  {filteredEvents.length === 0 ? (
+                    <p className="empty-text">No events scheduled.</p>
+                  ) : (
+                    <div className="list-view-events">
+                      {filteredEvents.map((evt) => (
+                        <article
+                          key={evt.id}
+                          className="calendar-event"
+                          data-tone={evt.tone}
+                          onClick={() => {
+                            const [y, m, d] = evt.dateKey.split("-").map(Number);
+                            setSelectedDate(new Date(y, m - 1, d));
+                          }}
+                        >
+                          <div className="calendar-event-datekey">{evt.dateKey}</div>
+                          <div className="calendar-event-time">
+                            <Clock3 aria-hidden="true" />
+                            {evt.time}
+                          </div>
+                          <h3>{evt.title}</h3>
+                          <p>
+                            <MapPin aria-hidden="true" />
+                            {evt.location}
+                          </p>
+                        </article>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Right Agenda Sidebar */}

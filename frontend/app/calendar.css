@@ -51,10 +51,11 @@
 
 .calendar-heading h1 {
   margin: 0;
-  font-size: clamp(36px, 4.5vw, 56px);
+  font-size: clamp(26px, 3vw, 38px);
   font-weight: 650;
-  line-height: .95;
-  letter-spacing: -2px;
+  line-height: 1.1;
+  letter-spacing: -1px;
+  color: var(--theme-primary, #17211e);
 }
 
 .calendar-heading > div > p:last-child {
@@ -73,8 +74,8 @@
   color: #fff;
   border: 0;
   border-radius: 999px;
-  background: #17211e;
-  box-shadow: 0 12px 28px rgba(23, 33, 30, .16);
+  background: var(--theme-primary, #17211e);
+  box-shadow: 0 12px 28px var(--theme-primary-shadow, rgba(23, 33, 30, .16));
   font-size: 13px;
   font-weight: 700;
   cursor: pointer;
@@ -82,7 +83,7 @@
 }
 
 .calendar-add-button:hover {
-  background: #253631;
+  background: var(--theme-primary-hover, #253631);
   transform: translateY(-1px);
 }
 
@@ -132,9 +133,9 @@
 }
 
 .calendar-icon-btn:hover {
-  background: #17211e;
+  background: var(--theme-primary, #17211e);
   color: #ffffff;
-  border-color: #17211e;
+  border-color: var(--theme-primary, #17211e);
 }
 
 .calendar-icon-btn svg { width: 18px; height: 18px; }
@@ -152,9 +153,9 @@
 }
 
 .calendar-today-btn:hover {
-  background: #17211e;
+  background: var(--theme-primary, #17211e);
   color: #ffffff;
-  border-color: #17211e;
+  border-color: var(--theme-primary, #17211e);
 }
 
 .calendar-view-controls {
@@ -192,10 +193,10 @@
 .filter-pill.blue.active,
 .filter-pill.green.active,
 .filter-pill.orange.active {
-  background: #17211e !important;
+  background: var(--theme-primary, #17211e) !important;
   color: #ffffff !important;
-  border-color: #17211e !important;
-  box-shadow: 0 4px 12px rgba(23, 33, 30, 0.15);
+  border-color: var(--theme-primary, #17211e) !important;
+  box-shadow: 0 4px 12px var(--theme-primary-shadow, rgba(23, 33, 30, 0.15));
 }
 
 .calendar-mode-toggle {
@@ -221,7 +222,7 @@
 }
 
 .mode-btn.active {
-  background: #17211e;
+  background: var(--theme-primary, #17211e);
   color: #ffffff;
 }
 
@@ -269,7 +270,7 @@
 
 .calendar-weekday-cell {
   padding: 8px 0;
-  color: #667b84;
+  color: #17211e;
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.5px;
@@ -299,7 +300,7 @@
 
 .calendar-cell:hover {
   background: #ffffff;
-  border-color: #17211e;
+  border-color: var(--theme-primary, #17211e);
   transform: translateY(-2px);
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
 }
@@ -311,7 +312,7 @@
 
 /* Selected Cell - Crisp Black Border */
 .calendar-cell.selected {
-  border-color: #17211e;
+  border-color: var(--theme-primary, #17211e);
   background: #ffffff;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
@@ -334,7 +335,7 @@
   width: 24px;
   height: 24px;
   border-radius: 999px;
-  background: #17211e;
+  background: var(--theme-primary, #17211e);
   color: #ffffff;
 }
 
@@ -344,7 +345,7 @@
   letter-spacing: 0.5px;
   padding: 2px 6px;
   border-radius: 6px;
-  background: #17211e;
+  background: var(--theme-primary, #17211e);
   color: #ffffff;
   text-transform: uppercase;
 }
@@ -444,7 +445,7 @@
   place-items: center;
   flex: 0 0 auto;
   border-radius: 12px;
-  background: #17211e;
+  background: var(--theme-primary, #17211e);
   color: #ffffff;
 }
 
@@ -465,7 +466,7 @@
 }
 
 .calendar-event:hover {
-  border-color: #17211e;
+  border-color: var(--theme-primary, #17211e);
   transform: translateX(2px);
 }
 
@@ -518,10 +519,10 @@
   align-items: center;
   gap: 6px;
   padding: 7px 16px;
-  border: 1px solid #17211e;
+  border: 1px solid var(--theme-primary, #17211e);
   border-radius: 999px;
   background: #ffffff;
-  color: #17211e;
+  color: var(--theme-primary, #17211e);
   font-size: 12px;
   font-weight: 700;
   cursor: pointer;
@@ -529,7 +530,7 @@
 }
 
 .add-inline-btn:hover {
-  background: #17211e;
+  background: var(--theme-primary, #17211e);
   color: #ffffff;
 }
 
@@ -617,8 +618,8 @@
 }
 
 .form-group input:focus {
-  border-color: #17211e;
-  box-shadow: 0 0 0 3px rgba(23, 33, 30, 0.15);
+  border-color: var(--theme-primary, #17211e);
+  box-shadow: 0 0 0 3px var(--theme-primary-shadow, rgba(23, 33, 30, 0.15));
 }
 
 .form-row {
@@ -645,9 +646,9 @@
 }
 
 .tone-chip.selected {
-  background: #17211e !important;
+  background: var(--theme-primary, #17211e) !important;
   color: #ffffff !important;
-  border-color: #17211e !important;
+  border-color: var(--theme-primary, #17211e) !important;
 }
 
 .modal-actions {
@@ -673,7 +674,7 @@
   padding: 9px 20px;
   border: 0;
   border-radius: 999px;
-  background: #17211e;
+  background: var(--theme-primary, #17211e);
   color: #ffffff;
   font-size: 13px;
   font-weight: 700;
@@ -681,7 +682,7 @@
 }
 
 .modal-submit-btn:hover {
-  background: #253631;
+  background: var(--theme-primary-hover, #253631);
 }
 
 @keyframes fadeIn {

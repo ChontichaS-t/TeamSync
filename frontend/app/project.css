@@ -15,7 +15,7 @@
   --accent-green: #059669;
   --accent-amber: #d97706;
   --accent-red: #dc2626;
-  --accent-blue: #2563eb;
+  --accent-blue: #1a77a6;
 }
 
 /* Global Navbar Styling for TeamSync (Clean Borderless Header) */
@@ -83,8 +83,8 @@
 .project-navbar-links a.active,
 .project-navbar-links .project-navbar-active {
   color: #ffffff !important;
-  background: #17211e !important;
-  box-shadow: 0 4px 14px rgba(23, 33, 30, 0.18);
+  background: var(--theme-primary, #17211e) !important;
+  box-shadow: 0 4px 14px var(--theme-primary-shadow, rgba(23, 33, 30, 0.18));
 }
 
 @media (max-width: 680px) {
@@ -298,9 +298,9 @@
 
 .sec-tab.active {
   color: #ffffff !important;
-  background: #17211e !important;
-  border-color: #17211e !important;
-  box-shadow: 0 4px 14px rgba(23, 33, 30, 0.18);
+  background: var(--theme-primary, #17211e) !important;
+  border-color: var(--theme-primary, #17211e) !important;
+  box-shadow: 0 4px 14px var(--theme-primary-shadow, rgba(23, 33, 30, 0.18));
   font-weight: 700;
 }
 
@@ -391,7 +391,7 @@
   display: grid;
   place-items: center;
   border-radius: 50%;
-  background: #17211e;
+  background: var(--theme-primary, #17211e);
   color: #ffffff;
   font-size: 12px;
   font-weight: 700;
@@ -427,7 +427,7 @@
 
 /* Action Buttons */
 .btn-navy {
-  background: #17211e;
+  background: var(--theme-primary, #17211e);
   color: #ffffff;
   border: none;
   padding: 10px 22px;
@@ -438,14 +438,14 @@
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  box-shadow: 0 4px 14px rgba(23, 33, 30, 0.18);
+  box-shadow: 0 4px 14px var(--theme-primary-shadow, rgba(23, 33, 30, 0.18));
   transition: all 0.18s ease;
 }
 
 .btn-navy:hover {
-  background: #253631;
+  background: var(--theme-primary-hover, #253631);
   transform: translateY(-1px);
-  box-shadow: 0 6px 18px rgba(23, 33, 30, 0.25);
+  box-shadow: 0 6px 18px var(--theme-primary-shadow, rgba(23, 33, 30, 0.25));
 }
 
 .btn-outline {
@@ -500,7 +500,7 @@
 
 .meeting-note-agreed {
   background: #ffffff;
-  border-left: 3px solid #17211e;
+  border-left: 3px solid var(--theme-primary, #17211e);
   padding: 10px 14px;
   border-radius: 0 10px 10px 0;
   font-size: 13px;
@@ -529,7 +529,7 @@
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: #17211e;
+  background: var(--theme-primary, #17211e);
   box-shadow: 0 0 0 3px #ffffff;
 }
 
@@ -626,8 +626,8 @@
 }
 
 .form-input:focus {
-  border-color: #17211e;
-  box-shadow: 0 0 0 3px rgba(23, 33, 30, 0.12);
+  border-color: var(--theme-primary, #17211e);
+  box-shadow: 0 0 0 3px var(--theme-primary-shadow, rgba(23, 33, 30, 0.12));
 }
 
 .form-input::placeholder {

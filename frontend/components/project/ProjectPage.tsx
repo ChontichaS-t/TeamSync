@@ -298,9 +298,32 @@ function formatThaiDate(date?: Date): string {
   return `${day} ${month} ${year}`;
 }
 
+const THEME_MAP = {
+  "/new/newsea.jpg": { primary: "#1a77a6", hover: "#13587b", shadow: "rgba(26, 119, 166, 0.2)" },
+  "/new/newtrain.jpg": { primary: "#351e7a", hover: "#251458", shadow: "rgba(53, 30, 122, 0.2)" },
+  "/new/newrabbit.jpg": { primary: "#db2777", hover: "#be185d", shadow: "rgba(219, 39, 119, 0.2)" },
+  "/new/newgrli.jpg": { primary: "#c2410c", hover: "#9a3412", shadow: "rgba(194, 65, 12, 0.2)" },
+  "/new/newwindow.jpg": { primary: "#F87B1B", hover: "#c76214", shadow: "rgba(248, 123, 27, 0.2)" },
+  "/new/newbed.jpg": { primary: "#1a77a6", hover: "#13587b", shadow: "rgba(26, 119, 166, 0.2)" },
+  "/new/newboy.jpg": { primary: "#1a77a6", hover: "#13587b", shadow: "rgba(26, 119, 166, 0.2)" },
+  "/new/newdog.jpg": { primary: "#16a34a", hover: "#15803d", shadow: "rgba(22, 163, 74, 0.2)" },
+};
+
 export default function ProjectPage() {
   const searchParams = useSearchParams();
   const coverImage = searchParams.get("cover") || "/new/newsea.jpg";
+
+  const activeTheme = (THEME_MAP as Record<string, { primary: string; hover: string; shadow: string }>)[coverImage] || {
+    primary: "#17211e",
+    hover: "#253631",
+    shadow: "rgba(23, 33, 30, 0.18)",
+  };
+
+  const dynamicStyle = {
+    "--theme-primary": activeTheme.primary,
+    "--theme-primary-hover": activeTheme.hover,
+    "--theme-primary-shadow": activeTheme.shadow,
+  } as React.CSSProperties;
 
   const [activeTab, setActiveTab] = useState<"all" | "tasks" | "feedback" | "meetings" | "members_timeline">("all");
   const [tasks, setTasks] = useState<TaskItem[]>(initialTasks);
@@ -494,7 +517,7 @@ export default function ProjectPage() {
   }, [tasks, searchQuery, taskFilterStatus]);
 
   return (
-    <div className="project-room">
+    <div className="project-room" style={dynamicStyle}>
       {/* 1. Navbar */}
       <nav className="project-navbar" aria-label="Project navigation">
         <Link className="brand" href="/home" aria-label="TeamSync home">
@@ -502,10 +525,16 @@ export default function ProjectPage() {
         </Link>
         <div className="project-navbar-menu">
           <Link href="/home">Home</Link>
-          <Link className="project-navbar-active" href="/project">
+          <Link
+            className="project-navbar-active"
+            href={`/project?cover=${encodeURIComponent(coverImage)}`}
+          >
             Project
           </Link>
-          <Link href="/project#works" onClick={() => setActiveTab("tasks")}>
+          <Link
+            href={`/project?cover=${encodeURIComponent(coverImage)}#works`}
+            onClick={() => setActiveTab("tasks")}
+          >
             Works
           </Link>
           <Link href={`/calendar?cover=${encodeURIComponent(coverImage)}&title=${encodeURIComponent("Badminton Tournament System")}`}>Calendar</Link>
@@ -757,7 +786,7 @@ export default function ProjectPage() {
           <div className="section-block">
             <div className="section-header-bar">
               <h2 className="section-header-title">บันทึกการประชุม (Meeting Summaries)</h2>
-              <button onClick={() => setIsAddMeetingModalOpen(true)} className="btn-outline" style={{ padding: "6px 14px", fontSize: "12px" }}>
+              <button onClick={() => setIsAddMeetingModalOpen(true)} className="btn-navy" style={{ padding: "6px 14px", fontSize: "12px", height: "auto" }}>
                 <Plus className="w-3.5 h-3.5" /> บันทึกประชุม
               </button>
             </div>

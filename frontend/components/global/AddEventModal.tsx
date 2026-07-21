@@ -128,13 +128,13 @@ function MiniCalendarPicker({
             border: "1px solid #e5e7eb",
             borderRadius: "8px",
             backgroundColor: "#ffffff",
-            color: "#17211e",
+            color: "var(--theme-primary, #17211e)",
             cursor: "pointer",
           }}
         >
           <ChevronLeft style={{ width: 16, height: 16 }} />
         </button>
-        <span style={{ fontWeight: 700, fontSize: "14px", color: "#17211e" }}>
+        <span style={{ fontWeight: 700, fontSize: "14px", color: "var(--theme-primary, #17211e)" }}>
           {monthNames[month]} {year}
         </span>
         <button
@@ -148,7 +148,7 @@ function MiniCalendarPicker({
             border: "1px solid #e5e7eb",
             borderRadius: "8px",
             backgroundColor: "#ffffff",
-            color: "#17211e",
+            color: "var(--theme-primary, #17211e)",
             cursor: "pointer",
           }}
         >
@@ -207,17 +207,17 @@ function MiniCalendarPicker({
                 height: "32px",
                 display: "grid",
                 placeItems: "center",
-                border: isSelected ? "1px solid #17211e" : "0",
+                border: isSelected ? "1px solid var(--theme-primary, #17211e)" : "0",
                 borderRadius: "8px",
                 backgroundColor: isSelected
-                  ? "#17211e"
+                  ? "var(--theme-primary, #17211e)"
                   : isToday
                   ? "#f3f4f6"
                   : "transparent",
                 color: isSelected
                   ? "#ffffff"
                   : cell.isCurrentMonth
-                  ? "#17211e"
+                  ? "var(--theme-primary, #17211e)"
                   : "#9ca3af",
                 fontSize: "12px",
                 fontWeight: isSelected || isToday ? 700 : 500,
@@ -355,7 +355,7 @@ export function AddEventModal({
                   borderRadius: "10px",
                   backgroundColor: "#ffffff",
                   fontSize: "14px",
-                  color: "#17211e",
+                  color: "var(--theme-primary, #17211e)",
                   cursor: "pointer",
                   textAlign: "left",
                 }}
