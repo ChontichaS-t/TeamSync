@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarIcon, ChevronLeft, ChevronRight, X } from "lucide-react";
+import { CalendarIcon, ChevronDown, ChevronLeft, ChevronRight, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 export type NewEventData = {
@@ -324,7 +324,7 @@ export function AddEventModal({
 
         <form onSubmit={handleSubmit} className="calendar-modal-form">
           <div className="form-group">
-            <label htmlFor="modal-evt-title">Event Title</label>
+            <label htmlFor="modal-evt-title">Event title</label>
             <input
               id="modal-evt-title"
               type="text"
@@ -361,7 +361,7 @@ export function AddEventModal({
                 }}
               >
                 <span>{dateKey || "Select Date"}</span>
-                <CalendarIcon style={{ width: 16, height: 16, color: "#68767b" }} />
+                <ChevronDown style={{ width: 16, height: 16, color: "#94a3b8" }} />
               </button>
 
               {/* Styled Mini Calendar Popover */}
@@ -408,7 +408,7 @@ export function AddEventModal({
           </div>
 
           <div className="form-group">
-            <label>Category Tone</label>
+            <label>Category tone</label>
             <div className="tone-selector">
               {(["blue", "green", "orange", "purple"] as const).map((t) => (
                 <button

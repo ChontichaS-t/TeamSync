@@ -13,7 +13,9 @@ import {
   X,
 } from "lucide-react";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import Image from "next/image";
+import { useSearchParams } from "next/navigation";
+import { useMemo, useState, useEffect } from "react";
 import { AlertDialogSmall } from "@/components/global/AlertDialogSmall";
 import { AddEventModal } from "@/components/global/AddEventModal";
 
@@ -83,11 +85,19 @@ function toDateKey(date: Date): string {
 }
 
 export default function CalendarPage() {
+  const searchParams = useSearchParams();
+  const coverImage = searchParams.get("cover");
+  const projectTitle = searchParams.get("title") || "Badminton Tournament System";
+
   const [currentDate, setCurrentDate] = useState<Date>(new Date(2026, 6, 21)); // July 2026
   const [selectedDate, setSelectedDate] = useState<Date>(new Date(2026, 6, 21));
   const [events, setEvents] = useState<CalendarEvent[]>(initialEvents);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [filterTone, setFilterTone] = useState<string>("all");
+
+  useEffect(() => {
+    document.title = `${projectTitle} | TeamSync`;
+  }, [projectTitle]);
 
   // Delete Confirmation Dialog State
   const [deleteEventId, setDeleteEventId] = useState<string | null>(null);
@@ -212,14 +222,15 @@ export default function CalendarPage() {
 
   return (
     <div className="calendar-page-shell">
+
       <nav className="project-navbar" aria-label="Project navigation">
         <Link className="brand" href="/home" aria-label="TeamSync home">
           TeamSync
         </Link>
         <div className="project-navbar-menu">
           <Link href="/home">Home</Link>
-          <Link href="/project">Project</Link>
-          <Link href="/project#works">Works</Link>
+          <Link href={`/project${coverImage ? `?cover=${encodeURIComponent(coverImage)}` : ""}`}>Project</Link>
+          <Link href={`/project${coverImage ? `?cover=${encodeURIComponent(coverImage)}` : ""}#works`}>Works</Link>
           <Link className="project-navbar-active" href="/calendar">
             Calendar
           </Link>
@@ -230,8 +241,7 @@ export default function CalendarPage() {
         {/* Page Header */}
         <header className="calendar-heading">
           <div>
-            <p className="calendar-eyebrow">Project schedule</p>
-            <h1>Calendar</h1>
+            <h1>{projectTitle}</h1>
             <p>Plan milestones, reviews, and team sessions in an interactive grid.</p>
           </div>
           <button

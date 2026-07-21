@@ -3,9 +3,30 @@
   min-height: 100dvh;
   color: #17211e;
   background: #ffffff;
+  position: relative;
+}
+
+.calendar-page-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.calendar-page-bg-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.15); /* Light overlay to ensure text remains legible */
+  z-index: 1;
+}
+
+.calendar-page-bg::after {
+  display: none;
 }
 
 .calendar-page {
+  position: relative;
+  z-index: 2;
   width: min(1380px, calc(100% - clamp(24px, 5vw, 80px)));
   margin: 0 auto;
   padding: clamp(100px, 12vh, 140px) 0 48px;
@@ -519,8 +540,7 @@
   position: fixed;
   inset: 0;
   z-index: 999;
-  background: rgba(15, 23, 20, 0.45);
-  backdrop-filter: blur(8px);
+  background: rgba(17, 24, 39, 0.4);
   display: grid;
   place-items: center;
   padding: 20px;

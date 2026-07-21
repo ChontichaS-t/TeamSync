@@ -1,84 +1,688 @@
-.project-page {
-  min-height: 100vh;
-  padding: clamp(100px, 12vw, 150px) clamp(24px, 7vw, 96px);
-  color: #1f1f1f;
-  background: #fff;
+/* =========================================================
+   TeamSync - Project Room (Expansive Modern SaaS Design)
+   ========================================================= */
+
+:root {
+  --brand-navy: #17211e;
+  --brand-navy-light: #23312c;
+  --bg-page: #f8fafc;
+  --bg-card: #ffffff;
+  --border-light: #e2e8f0;
+  --border-medium: #cbd5e1;
+  --text-main: #0f172a;
+  --text-muted: #64748b;
+  --text-sub: #334155;
+  --accent-green: #059669;
+  --accent-amber: #d97706;
+  --accent-red: #dc2626;
+  --accent-blue: #2563eb;
 }
 
-.project-navbar {
+/* Global Navbar Styling for TeamSync (Clean Borderless Header) */
+.project-navbar,
+.auth-navbar,
+.home-navbar {
   width: 100%;
   position: fixed;
   top: 0;
   left: 0;
+  right: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 22px clamp(28px, 5vw, 80px);
-  background: rgba(255, 255, 255, .9);
-  border-bottom: 0;
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  z-index: 10;
+  padding: 18px clamp(24px, 4vw, 64px);
+  background: rgba(255, 255, 255, 0.88);
+  border: 0 !important;
+  border-bottom: 0 !important;
+  box-shadow: none !important;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  z-index: 100;
 }
 
-.project-navbar .brand {
+.project-navbar .brand,
+.auth-navbar .brand,
+.home-navbar .brand {
   min-width: 140px;
   color: #1f1f1f;
-  font-size: 18px;
-  font-weight: 600;
+  font-size: 19px;
+  font-weight: 750;
+  letter-spacing: -0.6px;
+  text-decoration: none;
 }
 
-.project-navbar-menu {
+.project-navbar-menu,
+.project-navbar-links {
   position: absolute;
   left: 50%;
   display: flex;
   align-items: center;
-  gap: clamp(26px, 4vw, 54px);
+  gap: clamp(20px, 3vw, 48px);
   transform: translateX(-50%);
 }
 
-.project-navbar-menu a {
-  padding: 8px 13px;
-  color: #686868;
+.project-navbar-menu a,
+.project-navbar-links a {
+  padding: 8px 16px;
+  color: #64748b;
   border-radius: 999px;
   font-size: 13px;
   font-weight: 600;
-  transition: color .16s ease, background .16s ease;
+  text-decoration: none;
+  transition: color 0.16s ease, background 0.16s ease;
 }
 
-.project-navbar-menu a:hover {
+.project-navbar-menu a:hover,
+.project-navbar-links a:hover {
   color: #17211e;
-  background: #f3f4f6;
+  background: #f1f5f9;
 }
 
-.project-navbar-menu .project-navbar-active {
-  color: #ffffff;
-  background: #17211e;
-  box-shadow: 0 4px 12px rgba(23, 33, 30, 0.15);
+.project-navbar-menu .project-navbar-active,
+.project-navbar-menu a.active,
+.project-navbar-links a.active,
+.project-navbar-links .project-navbar-active {
+  color: #ffffff !important;
+  background: #17211e !important;
+  box-shadow: 0 4px 14px rgba(23, 33, 30, 0.18);
 }
-
-.project-page-label {
-  margin: 0 0 8px;
-  color: #777;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 1.4px;
-  text-transform: uppercase;
-}
-
-.project-page h1 {
-  max-width: 760px;
-  margin: 0 0 14px;
-  font-size: clamp(38px, 6vw, 72px);
-  line-height: 1;
-  letter-spacing: -3px;
-}
-
-.project-page > p:last-child { color: #666; }
 
 @media (max-width: 680px) {
-  .project-navbar { padding: 16px 18px; }
-  .project-navbar-menu { display: none; }
+  .project-navbar,
+  .auth-navbar,
+  .home-navbar { padding: 16px 18px; }
+  .project-navbar-menu,
+  .project-navbar-links { display: none; }
   .project-navbar .brand { min-width: 0; }
+}
+
+/* Page Container */
+.project-room {
+  min-height: 100vh;
+  background-color: #ffffff;
+  color: var(--text-main);
+  font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  padding-bottom: 80px;
+}
+
+/* Main Content Area - Matching Calendar Page Width & Spacing */
+.project-content {
+  width: min(1380px, calc(100% - clamp(24px, 5vw, 80px)));
+  margin: 0 auto;
+  padding: clamp(100px, 12vh, 140px) 0 48px;
+}
+
+/* Cover Banner - Hero Section */
+.project-cover-banner {
+  position: relative;
+  width: 100%;
+  min-height: 340px;
+  border-radius: 22px;
+  overflow: hidden;
+  margin-bottom: 28px;
+}
+
+.project-cover-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.15) 0%, rgba(0, 0, 0, 0.55) 100%);
+  z-index: 1;
+}
+
+.project-cover-content {
+  position: relative;
+  z-index: 2;
+  padding: 36px 40px 32px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  height: 100%;
+  min-height: 340px;
+}
+
+.project-header-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 72px;
+}
+
+.project-main-title {
+  font-size: clamp(26px, 3vw, 38px);
+  font-weight: 650;
+  color: #ffffff;
+  margin: 0 0 8px 0;
+  letter-spacing: -1.2px;
+  line-height: 1.15;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.project-goal-desc {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.85);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.project-goal-desc strong {
+  color: #ffffff;
+}
+
+/* Banner Action Buttons */
+.btn-banner {
+  background: rgba(255, 255, 255, 0.95);
+  color: #0f172a;
+  border: none;
+  padding: 10px 22px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  transition: all 0.18s ease;
+  backdrop-filter: blur(4px);
+}
+
+.btn-banner:hover {
+  background: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.15);
+}
+
+.btn-banner-outline {
+  background: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  padding: 9px 20px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  transition: all 0.18s ease;
+  backdrop-filter: blur(4px);
+}
+
+.btn-banner-outline:hover {
+  background: rgba(255, 255, 255, 0.28);
+  border-color: rgba(255, 255, 255, 0.6);
+  transform: translateY(-1px);
+}
+
+/* Progress Stats Row - Glass Cards on Banner */
+.project-quick-stats {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+}
+
+.stat-box {
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 16px;
+  padding: 16px 18px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.stat-box:hover {
+  background: rgba(255, 255, 255, 0.22);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.stat-box-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 4px;
+  white-space: nowrap;
+}
+
+.stat-box-value {
+  font-size: 22px;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: -0.5px;
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.stat-box-value span {
+  color: rgba(255, 255, 255, 0.65);
+}
+
+/* Navigation Tabs */
+.project-section-tabs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid #e2e8f0;
+  margin-bottom: 28px;
+  padding-bottom: 6px;
+  overflow-x: auto;
+}
+
+.sec-tab {
+  padding: 10px 22px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #64748b;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.16s ease;
+}
+
+.sec-tab:hover {
+  color: #0f172a;
+  background: #f1f5f9;
+}
+
+.sec-tab.active {
+  color: #ffffff !important;
+  background: #17211e !important;
+  border-color: #17211e !important;
+  box-shadow: 0 4px 14px rgba(23, 33, 30, 0.18);
+  font-weight: 700;
+}
+
+/* Section Block Styling - Modern Rounded Card */
+.section-block {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 22px;
+  margin-bottom: 28px;
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.04);
+  overflow: hidden;
+}
+
+.section-header-bar {
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  border-bottom: 1px solid #e2e8f0;
+  padding: 18px 26px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.section-header-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+  letter-spacing: -0.3px;
+}
+
+.section-header-sub {
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.section-body {
+  padding: 24px 26px;
+}
+
+/* Tables Styling (Expansive Clean Grid) */
+.ts-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  text-align: left;
+}
+
+.ts-table th {
+  background: #f8fafc;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 14px 26px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.ts-table td {
+  padding: 16px 26px;
+  border-bottom: 1px solid #f1f5f9;
+  color: #1e293b;
+  vertical-align: middle;
+}
+
+.ts-table tr:last-child td {
+  border-bottom: none;
+}
+
+.ts-table tr:hover td {
+  background-color: #f8fafc;
+}
+
+/* Member Name Cell with Avatar */
+.member-cell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.member-avatar-circle {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #17211e;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* Status Pill Indicators */
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.status-todo { background: #f1f5f9; color: #475569; }
+.status-doing { background: #fef3c7; color: #92400e; }
+.status-review { background: #f3e8ff; color: #6b21a8; }
+.status-done { background: #d1fae5; color: #065f46; }
+
+/* Origin Source Badge */
+.source-tag {
+  display: inline-block;
+  padding: 3px 10px;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #475569;
+}
+
+/* Action Buttons */
+.btn-navy {
+  background: #17211e;
+  color: #ffffff;
+  border: none;
+  padding: 10px 22px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  box-shadow: 0 4px 14px rgba(23, 33, 30, 0.18);
+  transition: all 0.18s ease;
+}
+
+.btn-navy:hover {
+  background: #253631;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(23, 33, 30, 0.25);
+}
+
+.btn-outline {
+  background: #ffffff;
+  color: #0f172a;
+  border: 1px solid #cbd5e1;
+  padding: 9px 20px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  transition: all 0.18s ease;
+}
+
+.btn-outline:hover {
+  background: #f8fafc;
+  border-color: #0f172a;
+  transform: translateY(-1px);
+}
+
+/* Meeting Note Cards */
+.meeting-note-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 16px;
+  transition: border-color 0.15s ease;
+}
+
+.meeting-note-card:hover {
+  border-color: #cbd5e1;
+}
+
+.meeting-note-card h4 {
+  margin: 0 0 10px 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.meeting-note-list {
+  margin: 0 0 12px 0;
+  padding-left: 20px;
+  font-size: 14px;
+  color: #475569;
+  line-height: 1.6;
+}
+
+.meeting-note-agreed {
+  background: #ffffff;
+  border-left: 3px solid #17211e;
+  padding: 10px 14px;
+  border-radius: 0 10px 10px 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: #0f172a;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+}
+
+/* Timeline List */
+.timeline-list {
+  position: relative;
+  padding-left: 20px;
+  border-left: 2px solid #e2e8f0;
+}
+
+.timeline-row {
+  position: relative;
+  margin-bottom: 18px;
+}
+
+.timeline-row::before {
+  content: "";
+  position: absolute;
+  left: -25px;
+  top: 5px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #17211e;
+  box-shadow: 0 0 0 3px #ffffff;
+}
+
+@media (max-width: 1280px) {
+  .project-quick-stats {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .project-content {
+    width: min(100% - 28px, 680px);
+    padding-top: 88px;
+  }
+
+  .project-quick-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .section-header-bar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+}
+
+/* =========================================================
+   Modal System (Add Task / Feedback / Meeting)
+   ========================================================= */
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  background: rgba(15, 23, 42, 0.45);
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  animation: modalFadeIn 0.18s ease;
+}
+
+.modal-dialog {
+  width: min(500px, 100%);
+  border-radius: 24px;
+  background: #ffffff;
+  padding: 28px;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.18);
+  animation: modalSlideUp 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: visible;
+}
+
+.modal-title-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 22px;
+}
+
+.modal-title-bar h3 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: #0f172a;
+  letter-spacing: -0.3px;
+}
+
+/* Form Styles */
+.form-group {
+  margin-bottom: 18px;
+}
+
+.form-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+}
+
+.form-input {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  font-size: 14px;
+  color: #0f172a;
+  background: #ffffff;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  box-sizing: border-box;
+  font-family: inherit;
+}
+
+.form-input:focus {
+  border-color: #17211e;
+  box-shadow: 0 0 0 3px rgba(23, 33, 30, 0.12);
+}
+
+.form-input::placeholder {
+  color: #94a3b8;
+}
+
+textarea.form-input {
+  resize: vertical;
+  min-height: 60px;
+}
+
+@keyframes modalFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes modalSlideUp {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Members & Timeline Grid Layout */
+.members-timeline-container {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 28px;
+  align-items: start;
+  margin-bottom: 28px;
+}
+
+/* Remove default bottom margin from the blocks inside grid to prevent double spacing */
+.members-timeline-container .section-block {
+  margin-bottom: 0;
+}
+
+.timeline-date {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 3px;
+}
+
+.timeline-event {
+  font-size: 13.5px;
+  font-weight: 550;
+  color: var(--text-main);
+  line-height: 1.4;
+}
+
+@media (max-width: 1024px) {
+  .members-timeline-container {
+    grid-template-columns: 1fr;
+    gap: 28px;
+  }
 }
 

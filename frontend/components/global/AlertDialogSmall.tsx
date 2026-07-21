@@ -8,30 +8,31 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
-import { Button } from "@/components/ui/button"
+} from "@/components/ui/alert-dialog";
+import React from "react";
 
 export type AlertDialogSmallProps = {
-  open?: boolean
-  onOpenChange?: (open: boolean) => void
-  trigger?: React.ReactNode
-  title?: string
-  description?: string
-  cancelText?: string
-  actionText?: string
-  onAction?: () => void
-  variant?: "default" | "destructive"
-}
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  trigger?: React.ReactNode;
+  title?: string;
+  description?: string;
+  cancelText?: string;
+  actionText?: string;
+  onAction?: () => void;
+  variant?: "default" | "destructive";
+};
 
 export function AlertDialogSmall({
   open,
   onOpenChange,
-  trigger = <Button variant="outline">Show Dialog</Button>,
-  title = "Allow accessory to connect?",
-  description = "Do you want to allow the USB accessory to connect to this device?",
-  cancelText = "Don't allow",
-  actionText = "Allow",
+  trigger,
+  title = "ยืนยันการดำเนินการ",
+  description = "คุณแน่ใจหรือไม่ว่าต้องการดำเนินการนี้?",
+  cancelText = "ยกเลิก",
+  actionText = "ตกลง",
   onAction,
+  variant = "default",
 }: AlertDialogSmallProps) {
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
@@ -43,9 +44,18 @@ export function AlertDialogSmall({
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>{cancelText}</AlertDialogCancel>
-          <AlertDialogAction onClick={onAction}>{actionText}</AlertDialogAction>
+          <AlertDialogAction
+            onClick={onAction}
+            style={
+              variant === "destructive"
+                ? { backgroundColor: "#ef4444", color: "#ffffff" }
+                : undefined
+            }
+          >
+            {actionText}
+          </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
-  )
+  );
 }

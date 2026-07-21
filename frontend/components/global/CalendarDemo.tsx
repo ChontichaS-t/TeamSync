@@ -1,18 +1,214 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { Calendar } from "@/components/ui/calendar"
+import * as React from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
-export function CalendarDemo() {
-  const [date, setDate] = React.useState<Date | undefined>(new Date())
+export interface CalendarDemoProps {
+  selectedDate?: Date;
+  onSelectDate?: (date: Date | undefined) => void;
+  className?: string;
+}
+
+export function CalendarDemo({ selectedDate, onSelectDate }: CalendarDemoProps = {}) {
+  const activeDate = selectedDate || new Date();
+
+  const [pickerMonth, setPickerMonth] = React.useState<Date>(
+    new Date(activeDate.getFullYear(), activeDate.getMonth(), 1)
+  );
+
+  const year = pickerMonth.getFullYear();
+  const month = pickerMonth.getMonth();
+
+  const monthNames = [
+    "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน",
+    "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"
+  ];
+  const weekdays = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
+
+  const handlePrev = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setPickerMonth(new Date(year, month - 1, 1));
+  };
+
+  const handleNext = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setPickerMonth(new Date(year, month + 1, 1));
+  };
+
+  const firstDayIndex = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const daysInPrevMonth = new Date(year, month, 0).getDate();
+
+  const cells = [];
+  for (let i = firstDayIndex - 1; i >= 0; i--) {
+    const dNum = daysInPrevMonth - i;
+    cells.push({
+      date: new Date(year, month - 1, dNum),
+      dayNum: dNum,
+      isCurrentMonth: false,
+    });
+  }
+  for (let dNum = 1; dNum <= daysInMonth; dNum++) {
+    cells.push({
+      date: new Date(year, month, dNum),
+      dayNum: dNum,
+      isCurrentMonth: true,
+    });
+  }
+  const remaining = 35 - cells.length > 0 ? 35 - cells.length : 42 - cells.length;
+  for (let dNum = 1; dNum <= remaining; dNum++) {
+    cells.push({
+      date: new Date(year, month + 1, dNum),
+      dayNum: dNum,
+      isCurrentMonth: false,
+    });
+  }
+
+  const selectedKey = `${activeDate.getFullYear()}-${activeDate.getMonth()}-${activeDate.getDate()}`;
+  const todayObj = new Date();
+  const todayKey = `${todayObj.getFullYear()}-${todayObj.getMonth()}-${todayObj.getDate()}`;
 
   return (
-    <Calendar
-      mode="single"
-      selected={date}
-      onSelect={setDate}
-      className="rounded-lg border border-gray-200 bg-white p-3 shadow-sm"
-      captionLayout="dropdown"
-    />
-  )
+    <div
+      style={{
+        width: "280px",
+        padding: "14px",
+        backgroundColor: "#ffffff",
+        borderRadius: "18px",
+        border: "1px solid #e5e7eb",
+        boxShadow: "0 14px 36px rgba(0, 0, 0, 0.14)",
+        position: "relative",
+        zIndex: 9999,
+        userSelect: "none",
+      }}
+      onClick={(e) => e.stopPropagation()}
+    >
+      {/* Header Month / Year */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          marginBottom: "12px",
+        }}
+      >
+        <button
+          type="button"
+          onClick={handlePrev}
+          style={{
+            width: "30px",
+            height: "30px",
+            display: "grid",
+            placeItems: "center",
+            border: "1px solid #e5e7eb",
+            borderRadius: "8px",
+            backgroundColor: "#ffffff",
+            color: "#1e293b",
+            cursor: "pointer",
+          }}
+        >
+          <ChevronLeft style={{ width: 16, height: 16 }} />
+        </button>
+        <span style={{ fontWeight: 700, fontSize: "14px", color: "#1e293b" }}>
+          {monthNames[month]} {year}
+        </span>
+        <button
+          type="button"
+          onClick={handleNext}
+          style={{
+            width: "30px",
+            height: "30px",
+            display: "grid",
+            placeItems: "center",
+            border: "1px solid #e5e7eb",
+            borderRadius: "8px",
+            backgroundColor: "#ffffff",
+            color: "#1e293b",
+            cursor: "pointer",
+          }}
+        >
+          <ChevronRight style={{ width: 16, height: 16 }} />
+        </button>
+      </div>
+
+      {/* Weekdays */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(7, 1fr)",
+          gap: "2px",
+          textAlign: "center",
+          marginBottom: "6px",
+        }}
+      >
+        {weekdays.map((w) => (
+          <span
+            key={w}
+            style={{
+              fontSize: "11px",
+              fontWeight: 700,
+              color: "#94a3b8",
+              padding: "4px 0",
+            }}
+          >
+            {w}
+          </span>
+        ))}
+      </div>
+
+      {/* Days Grid */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(7, 1fr)",
+          gap: "4px",
+        }}
+      >
+        {cells.map((cell, idx) => {
+          const cellKey = `${cell.date.getFullYear()}-${cell.date.getMonth()}-${cell.date.getDate()}`;
+          const isSelected = cellKey === selectedKey;
+          const isToday = cellKey === todayKey;
+
+          return (
+            <button
+              key={idx}
+              type="button"
+              onClick={() => {
+                if (onSelectDate) {
+                  onSelectDate(cell.date);
+                }
+              }}
+              style={{
+                height: "32px",
+                display: "grid",
+                placeItems: "center",
+                fontSize: "12px",
+                fontWeight: isSelected || isToday ? 700 : 500,
+                borderRadius: "8px",
+                border: "none",
+                cursor: "pointer",
+                backgroundColor: isSelected
+                  ? "#334155"
+                  : isToday
+                  ? "#f1f5f9"
+                  : "transparent",
+                color: isSelected
+                  ? "#ffffff"
+                  : !cell.isCurrentMonth
+                  ? "#cbd5e1"
+                  : isToday
+                  ? "#059669"
+                  : "#1e293b",
+                transition: "all 0.15s ease",
+              }}
+            >
+              {cell.dayNum}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
 }
