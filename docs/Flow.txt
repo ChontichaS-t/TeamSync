@@ -1,0 +1,63 @@
+backend/
+├── cmd/
+│   ├── api/
+│   │   └── main.go
+│   └── create-user/
+│       └── main.go
+│
+├── internal/
+│   ├── model/
+│   │   ├── user.go
+│   │   ├── team.go
+│   │   ├── task.go
+│   │   ├── meeting.go
+│   │   └── dashboard.go
+│   │
+│   ├── repository/
+│   │   ├── auth_repository.go
+│   │   ├── team_repository.go
+│   │   ├── task_repository.go
+│   │   ├── meeting_repository.go
+│   │   └── dashboard_repository.go
+│   │
+│   ├── service/
+│   │   ├── auth_service.go
+│   │   ├── team_service.go
+│   │   ├── task_service.go
+│   │   ├── meeting_service.go
+│   │   └── dashboard_service.go
+│   │
+│   ├── controller/
+│   │   ├── server.go
+│   │   ├── router.go
+│   │   ├── response.go
+│   │   ├── auth_controller.go
+│   │   ├── team_controller.go
+│   │   ├── task_controller.go
+│   │   ├── meeting_controller.go
+│   │   ├── dashboard_controller.go
+│   │   └── health_controller.go
+│   │
+│   ├── middleware/
+│   │   ├── authentication.go
+│   │   ├── authorization.go
+│   │   ├── logging.go
+│   │   ├── recovery.go
+│   │   ├── rate_limit.go
+│   │   └── security.go
+│   │
+│   ├── database/
+│   │   ├── postgres.go
+│   │   ├── migration.go
+│   │   └── migrations/
+│   │       ├── 001_auth.sql
+│   │       ├── 002_teams.sql
+│   │       ├── 003_tasks.sql
+│   │       └── 004_meetings.sql
+│   │
+│   └── config/
+│       └── config.go
+│
+├── go.mod
+├── go.sum
+└── Dockerfile

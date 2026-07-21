@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  ArrowRight,
   Eye,
   EyeOff,
   Link2,
@@ -9,19 +8,84 @@ import {
   Mail,
 } from "lucide-react";
 import Image from "next/image";
-import { FormEvent, useState } from "react";
+import { useRouter } from "next/navigation";
+import { FormEvent, useEffect, useState } from "react";
+
+type APIError = {
+  error?: string;
+};
 
 export default function LoginPage() {
+	const router = useRouter();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
+  const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  useEffect(() => {
+    const controller = new AbortController();
+    fetch("/api/auth/me", {
+      credentials: "include",
+      cache: "no-store",
+      signal: controller.signal,
+    }).then((response) => {
+      if (response.ok) {
+        router.replace("/home");
+      }
+    }).catch(() => undefined);
+    return () => controller.abort();
+  }, [router]);
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    setError("");
+    setIsSubmitting(true);
+
+    try {
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password, rememberMe }),
+      });
+      if (!response.ok) {
+        const result = (await response.json().catch(() => ({}))) as APIError;
+        setError(result.error ?? "Unable to sign in. Please try again.");
+        return;
+      }
+      router.replace("/home");
+      router.refresh();
+    } catch {
+      setError("Cannot connect to the server. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
-    <main className="page-shell">
-      <section className="login-card" aria-label="TeamSync sign in">
+    <main className="page-shell login-page-shell">
+      <nav className="auth-navbar" aria-label="Main navigation">
+        <a className="brand" href="/home" aria-label="TeamSync home">
+          <span>TeamSync</span>
+        </a>
+        <a className="auth-navbar-cta" href="/register">Sign up</a>
+      </nav>
+      <div className="login-scenery" aria-hidden="true">
+        <video
+          className="login-video-background"
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="auto"
+          onLoadedMetadata={(event) => { event.currentTarget.playbackRate = 0.8; }}
+        >
+          <source src="/skybg.mp4" type="video/mp4" />
+        </video>
+      </div>
+      <section className="login-card scenic-login-card" aria-label="TeamSync sign in">
         <aside className="brand-panel">
           <a className="brand" href="#" aria-label="TeamSync home">
             <span className="brand-mark"><Link2 aria-hidden="true" /></span>
@@ -59,7 +123,10 @@ export default function LoginPage() {
                   name="email"
                   type="email"
                   autoComplete="email"
-                  defaultValue="chonticha@teamsync.demo"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  placeholder="name@company.com"
+                  aria-invalid={Boolean(error)}
                   required
                   suppressHydrationWarning
                 />
@@ -73,7 +140,9 @@ export default function LoginPage() {
                   name="password"
                   type={showPassword ? "text" : "password"}
                   autoComplete="current-password"
-                  defaultValue="teamsync123"
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  aria-invalid={Boolean(error)}
                   required
                   suppressHydrationWarning
                 />
@@ -102,9 +171,10 @@ export default function LoginPage() {
                 <a href="#">Forgot password?</a>
               </div>
 
-              <button className="sign-in-button" type="submit" suppressHydrationWarning>
-                <span>Sign in</span>
-                <ArrowRight aria-hidden="true" />
+              {error && <p className="form-error" role="alert">{error}</p>}
+
+              <button className="sign-in-button" type="submit" disabled={isSubmitting} suppressHydrationWarning>
+                <span>{isSubmitting ? "Signing in..." : "Sign in"}</span>
               </button>
             </form>
 
@@ -115,14 +185,14 @@ export default function LoginPage() {
             </div>
 
             <div className="social-row">
-              <button type="button" suppressHydrationWarning>
+              <button type="button" disabled title="Google sign-in is not configured yet" suppressHydrationWarning>
                 <Image src="/google-g.png" alt="" width={18} height={18} aria-hidden="true" />
                 <span>Google</span>
               </button>
             </div>
 
             <p className="signup-copy">
-              Don&apos;t have an account? <a href="#">Request early access</a>
+              Don&apos;t have an account? <a href="/register">Sign up</a>
             </p>
           </div>
         </section>

@@ -12,6 +12,9 @@ build/
 coverage/
 
 # Backend / Python environments and cache
+bin/
+*.exe
+coverage.out
 venv/
 .venv/
 __pycache__/
