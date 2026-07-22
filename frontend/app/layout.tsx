@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
+import Footer from "@/components/global/Footer";
 import "./globals.css";
 import "./auth.css";
 import "./home.css";
@@ -36,8 +37,22 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en">
-      <body>{children}</body>
+    <html lang="en" style={{ height: "100%" }}>
+      <body
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          minHeight: "100vh",
+          margin: 0,
+        }}
+      >
+        <div style={{ flex: "1 0 auto", display: "flex", flexDirection: "column", width: "100%" }}>
+          {children}
+        </div>
+        <Footer />
+      </body>
     </html>
   );
 }
+
+
