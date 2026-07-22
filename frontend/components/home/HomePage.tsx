@@ -8,6 +8,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { apiFetch } from "@/lib/api";
 
 type User = {
   displayName: string;
@@ -26,14 +27,6 @@ type ProjectItem = {
   role?: "owner" | "admin" | "member";
 };
 
-const INITIAL_PROJECTS: ProjectItem[] = [
-  { id: 1, title: "Badminton Tournament System", cover: "/new/newsea.jpg", tags: "blue", deadline: "กำหนดส่ง 30 กันยายน 2026", progress: 65, members: ["/cv1.png"] },
-  { id: 2, title: "Badminton Tournament System", cover: "/new/newtrain.jpg", tags: "purple", deadline: "กำหนดส่ง 30 กันยายน 2026", progress: 65, members: ["/cv1.png"] },
-  { id: 3, title: "Badminton Tournament System", cover: "/new/newrabbit.jpg", tags: "pink", deadline: "กำหนดส่ง 30 กันยายน 2026", progress: 65, members: ["/cv1.png"] },
-  { id: 4, title: "Badminton Tournament System", cover: "/new/newgrli.jpg", tags: "brown", deadline: "กำหนดส่ง 30 กันยายน 2026", progress: 65, members: ["/cv1.png"] },
-  { id: 5, title: "Badminton Tournament System", cover: "/new/newwindow.jpg", tags: "red", deadline: "กำหนดส่ง 30 กันยายน 2026", progress: 65, members: ["/cv1.png"] },
-];
-
 export default function HomePage() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
@@ -41,7 +34,8 @@ export default function HomePage() {
   const [searchQuery, setSearchQuery] = useState("");
   
   // State for projects, modal, menu, and delete dialog
-  const [projects, setProjects] = useState<ProjectItem[]>(INITIAL_PROJECTS);
+  const [projects, setProjects] = useState<ProjectItem[]>([]);
+  const [apiError, setApiError] = useState("");
   const [isAddProjectModalOpen, setIsAddProjectModalOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<ProjectItem | null>(null);
   const [activeMenuProjectId, setActiveMenuProjectId] = useState<number | string | null>(null);
@@ -79,13 +73,7 @@ export default function HomePage() {
         const result = (await response.json()) as { user: User };
         setUser(result.user);
 
-        const projectsResponse = await fetch("/api/projects", {
-          credentials: "include",
-          cache: "no-store",
-          signal: controller.signal,
-        });
-        if (projectsResponse.ok) {
-          const projectResult = (await projectsResponse.json()) as {
+        const projectResult = await apiFetch<{
             projects: Array<{
               id: string;
               title: string;
@@ -97,19 +85,13 @@ export default function HomePage() {
               memberCount: number;
               role: "owner" | "admin" | "member";
             }>;
-          };
-          const joinedProjects: ProjectItem[] = projectResult.projects
-            .filter((project) => project.role !== "owner")
-            .map((project) => ({
+          }>("/api/projects", { signal: controller.signal });
+          const backendProjects: ProjectItem[] = projectResult.projects.map((project) => ({
               ...project,
               deadline: project.deadline || "ยังไม่ระบุกำหนดส่ง",
               members: ["/cv1.png"],
             }));
-          setProjects((current) => {
-            const joinedCovers = new Set(joinedProjects.map((project) => project.cover));
-            return [...joinedProjects, ...current.filter((project) => !joinedCovers.has(project.cover))];
-          });
-        }
+          setProjects(backendProjects);
       } catch (error) {
         if (!(error instanceof DOMException && error.name === "AbortError")) {
           router.replace("/login");
@@ -124,46 +106,41 @@ export default function HomePage() {
   }, [router]);
 
   // Create or Update Project
-  const handleSaveProject = (projectData: NewProjectData) => {
-    if (editingProject) {
-      // Update existing project
-      setProjects((prev) =>
-        prev.map((p) =>
-          p.id === editingProject.id
-            ? {
-                ...p,
-                title: projectData.title,
-                description: projectData.description,
-                cover: projectData.cover,
-                tags: projectData.tags,
-                deadline: `กำหนดส่ง ${projectData.deadline}`,
-                members: projectData.members.length > 0 ? projectData.members : p.members,
-              }
-            : p
-        )
-      );
-      setEditingProject(null);
-    } else {
-      // Add new project
-      const newProject: ProjectItem = {
-        id: Date.now(),
+  const handleSaveProject = async (projectData: NewProjectData) => {
+    setApiError("");
+    try {
+      const payload = JSON.stringify({
         title: projectData.title,
         description: projectData.description,
         cover: projectData.cover,
         tags: projectData.tags,
         deadline: `กำหนดส่ง ${projectData.deadline}`,
         progress: projectData.progress || 0,
-        members: projectData.members.length > 0 ? projectData.members : ["/cv1.png", "/cv2.png", "/cv3.png"],
-      };
-      setProjects((prev) => [newProject, ...prev]);
+      });
+      const saved = await apiFetch<Omit<ProjectItem, "members">>(
+        editingProject ? `/api/projects/${encodeURIComponent(String(editingProject.id))}` : "/api/projects",
+        { method: editingProject ? "PUT" : "POST", body: payload },
+      );
+      const next = { ...saved, members: editingProject?.members || ["/cv1.png"] };
+      setProjects((current) => editingProject
+        ? current.map((project) => project.id === editingProject.id ? next : project)
+        : [next, ...current]);
+      setEditingProject(null);
+    } catch (error) {
+      setApiError(error instanceof Error ? error.message : "ไม่สามารถบันทึกโปรเจกต์ได้");
     }
   };
 
   // Confirm Delete Project
-  const handleConfirmDelete = () => {
+  const handleConfirmDelete = async () => {
     if (!deletingProject) return;
-    setProjects((prev) => prev.filter((p) => p.id !== deletingProject.id));
-    setDeletingProject(null);
+    try {
+      await apiFetch<void>(`/api/projects/${encodeURIComponent(String(deletingProject.id))}`, { method: "DELETE" });
+      setProjects((prev) => prev.filter((p) => p.id !== deletingProject.id));
+      setDeletingProject(null);
+    } catch (error) {
+      setApiError(error instanceof Error ? error.message : "ไม่สามารถลบโปรเจกต์ได้");
+    }
   };
 
   if (isLoading || !user) {
@@ -190,6 +167,7 @@ export default function HomePage() {
       </nav>
 
       <section className="home-workspace" aria-labelledby="home-title">
+        {apiError && <p role="alert" style={{ color: "#b91c1c", marginBottom: 12 }}>{apiError}</p>}
         <header className="home-heading">
           <div>
             <p className="home-eyebrow">Welcome, {user.displayName || "Team member"}</p>

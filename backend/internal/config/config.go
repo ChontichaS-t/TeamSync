@@ -27,8 +27,17 @@ func Load() (Config, error) {
 		return Config{}, fmt.Errorf("parse COOKIE_SECURE: %w", err)
 	}
 
+	address := os.Getenv("HTTP_ADDRESS")
+	if address == "" {
+		if port := os.Getenv("PORT"); port != "" {
+			address = ":" + port
+		} else {
+			address = ":8080"
+		}
+	}
+
 	return Config{
-		Address:        envOrDefault("HTTP_ADDRESS", ":8080"),
+		Address:        address,
 		DatabaseURL:    databaseURL,
 		FrontendOrigin: envOrDefault("FRONTEND_ORIGIN", "http://localhost:3001"),
 		CookieSecure:   cookieSecure,

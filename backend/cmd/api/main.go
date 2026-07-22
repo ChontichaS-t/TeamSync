@@ -49,10 +49,12 @@ func main() {
 	}
 	projectRepository := repository.NewProjectRepository(pool)
 	projectService := service.NewProjectService(projectRepository)
+	workspaceRepository := repository.NewWorkspaceRepository(pool)
+	workspaceService := service.NewWorkspaceService(workspaceRepository)
 
 	server := &http.Server{
 		Addr:              appConfig.Address,
-		Handler:           controller.NewServer(appConfig, pool, authService, projectService).Handler(),
+		Handler:           controller.NewServer(appConfig, pool, authService, projectService, workspaceService).Handler(),
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       15 * time.Second,
 		WriteTimeout:      15 * time.Second,

@@ -21,6 +21,7 @@ import { useMemo, useState, useEffect } from "react";
 import { AlertDialogSmall } from "@/components/global/AlertDialogSmall";
 import { AddEventModal } from "@/components/global/AddEventModal";
 import { UserProfileMenu } from "@/components/global/UserProfileMenu";
+import { apiFetch } from "@/lib/api";
 
 export type CalendarEvent = {
   id: string;
@@ -30,49 +31,6 @@ export type CalendarEvent = {
   location: string;
   tone: "blue" | "green" | "orange" | "purple";
 };
-
-const initialEvents: CalendarEvent[] = [
-  {
-    id: "evt-1",
-    dateKey: "2026-07-21",
-    time: "09:30",
-    title: "Weekly team sync",
-    location: "Meeting room A",
-    tone: "blue",
-  },
-  {
-    id: "evt-2",
-    dateKey: "2026-07-21",
-    time: "13:00",
-    title: "Tournament flow review",
-    location: "Google Meet",
-    tone: "green",
-  },
-  {
-    id: "evt-3",
-    dateKey: "2026-07-21",
-    time: "16:30",
-    title: "Design handoff",
-    location: "Project room",
-    tone: "orange",
-  },
-  {
-    id: "evt-4",
-    dateKey: "2026-07-24",
-    time: "10:00",
-    title: "Sprint planning",
-    location: "Meeting room B",
-    tone: "blue",
-  },
-  {
-    id: "evt-5",
-    dateKey: "2026-07-30",
-    time: "15:00",
-    title: "Milestone check-in",
-    location: "Google Meet",
-    tone: "green",
-  },
-];
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTH_NAMES = [
@@ -102,6 +60,7 @@ export default function CalendarPage() {
   const searchParams = useSearchParams();
   const coverImage = searchParams.get("cover") || "/new/newsea.jpg";
   const projectTitle = searchParams.get("title") || "Badminton Tournament System";
+  const requestedProjectId = searchParams.get("projectId");
 
   const activeTheme = (THEME_MAP as Record<string, { primary: string; hover: string; shadow: string }>)[coverImage || ""] || {
     primary: "#17211e",
@@ -117,13 +76,39 @@ export default function CalendarPage() {
 
   const [currentDate, setCurrentDate] = useState<Date>(new Date(2026, 6, 21)); // July 2026
   const [selectedDate, setSelectedDate] = useState<Date>(new Date(2026, 6, 21));
-  const [events, setEvents] = useState<CalendarEvent[]>(initialEvents);
+  const [events, setEvents] = useState<CalendarEvent[]>([]);
+  const [backendProjectId, setBackendProjectId] = useState<string | null>(requestedProjectId);
+  const [apiError, setApiError] = useState("");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [filterTone, setFilterTone] = useState<string>("all");
 
   useEffect(() => {
     document.title = `${projectTitle} | TeamSync`;
   }, [projectTitle]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    async function loadEvents() {
+      try {
+        let projectId = requestedProjectId;
+        if (!projectId) {
+          const project = await apiFetch<{ id: string }>("/api/projects/ensure", {
+            method: "POST",
+            body: JSON.stringify({ externalKey: `cover:${coverImage}`, title: projectTitle, description: "", cover: coverImage, tags: "blue", deadline: "", progress: 0 }),
+            signal: controller.signal,
+          });
+          projectId = project.id;
+          setBackendProjectId(project.id);
+        }
+        const result = await apiFetch<{ events: CalendarEvent[] }>(`/api/projects/${encodeURIComponent(projectId)}/events`, { signal: controller.signal });
+        setEvents(result.events);
+      } catch (error) {
+        if (!(error instanceof DOMException && error.name === "AbortError")) setApiError(error instanceof Error ? error.message : "ไม่สามารถโหลดกิจกรรมได้");
+      }
+    }
+    void loadEvents();
+    return () => controller.abort();
+  }, [coverImage, projectTitle, requestedProjectId]);
 
   // Delete Confirmation Dialog State
   const [deleteEventId, setDeleteEventId] = useState<string | null>(null);
@@ -244,8 +229,14 @@ export default function CalendarPage() {
 
 
 
-  const handleDeleteEvent = (id: string) => {
-    setEvents((prev) => prev.filter((e) => e.id !== id));
+  const handleDeleteEvent = async (id: string) => {
+    if (!backendProjectId) return;
+    try {
+      await apiFetch<void>(`/api/projects/${encodeURIComponent(backendProjectId)}/events/${encodeURIComponent(id)}`, { method: "DELETE" });
+      setEvents((prev) => prev.filter((event) => event.id !== id));
+    } catch (error) {
+      setApiError(error instanceof Error ? error.message : "ไม่สามารถลบกิจกรรมได้");
+    }
   };
 
   const openNewEventModal = () => {
@@ -279,10 +270,10 @@ export default function CalendarPage() {
         </Link>
         <div className="project-navbar-menu">
           <Link href="/home">Home</Link>
-          <Link href={`/project${coverImage ? `?cover=${encodeURIComponent(coverImage)}` : ""}`}>Project</Link>
+          <Link href={`/project?cover=${encodeURIComponent(coverImage)}&title=${encodeURIComponent(projectTitle)}${backendProjectId ? `&projectId=${encodeURIComponent(backendProjectId)}` : ""}`}>Project</Link>
           <Link
             className="project-navbar-active"
-            href={`/calendar?cover=${encodeURIComponent(coverImage)}&title=${encodeURIComponent(projectTitle)}`}
+            href={`/calendar?cover=${encodeURIComponent(coverImage)}&title=${encodeURIComponent(projectTitle)}${backendProjectId ? `&projectId=${encodeURIComponent(backendProjectId)}` : ""}`}
           >
             Calendar
           </Link>
@@ -291,6 +282,7 @@ export default function CalendarPage() {
       </nav>
 
       <main className="calendar-page">
+        {apiError && <p role="alert" style={{ color: "#b91c1c", marginBottom: 12 }}>{apiError}</p>}
         {/* Page Header */}
         <header className="calendar-heading">
           <div>
@@ -658,21 +650,16 @@ export default function CalendarPage() {
         defaultDateKey={selectedDateKey}
         initialData={editingEvent}
         onSave={(data) => {
-          if (editingEvent) {
-            setEvents((prev) =>
-              prev.map((event) => event.id === editingEvent.id ? { ...event, ...data } : event),
-            );
-            return;
-          }
-          const newEvt: CalendarEvent = {
-            id: `evt-${Date.now()}`,
-            dateKey: data.dateKey,
-            time: data.time,
-            title: data.title,
-            location: data.location,
-            tone: data.tone,
-          };
-          setEvents((prev) => [...prev, newEvt]);
+          if (!backendProjectId) return;
+          void (async () => {
+            try {
+              const saved = await apiFetch<CalendarEvent>(editingEvent ? `/api/projects/${encodeURIComponent(backendProjectId)}/events/${encodeURIComponent(editingEvent.id)}` : `/api/projects/${encodeURIComponent(backendProjectId)}/events`, { method: editingEvent ? "PUT" : "POST", body: JSON.stringify(data) });
+              setEvents((current) => editingEvent ? current.map((event) => event.id === editingEvent.id ? saved : event) : [...current, saved]);
+              setApiError("");
+            } catch (error) {
+              setApiError(error instanceof Error ? error.message : "ไม่สามารถบันทึกกิจกรรมได้");
+            }
+          })();
         }}
       />
 
@@ -689,7 +676,7 @@ export default function CalendarPage() {
         actionText="ลบกิจกรรม"
         onAction={() => {
           if (deleteEventId) {
-            handleDeleteEvent(deleteEventId);
+            void handleDeleteEvent(deleteEventId);
             setDeleteEventId(null);
           }
         }}

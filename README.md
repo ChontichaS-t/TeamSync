@@ -61,4 +61,6 @@ docker compose down
 | `POST` | `/api/auth/logout` | เพิกถอน session และลบ cookie |
 | `GET` | `/healthz` | ตรวจ Go API และ PostgreSQL |
 
+Backend รองรับ Project CRUD, สมาชิกและสิทธิ์, ลิงก์เชิญ, งาน, Feedback, บันทึกประชุม, ปฏิทิน และ Timeline แล้ว อ่านสัญญา API และตัวอย่าง request ที่ [docs/BACKEND_API.md](docs/BACKEND_API.md)
+
 อ่านรายละเอียดแนวคิดและ checklist ก่อนขึ้น production ที่ [docs/AUTHENTICATION.md](docs/AUTHENTICATION.md)

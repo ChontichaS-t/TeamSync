@@ -16,6 +16,7 @@ import (
 var ErrProjectInput = errors.New("invalid project data")
 var ErrProjectForbidden = errors.New("project access denied")
 var ErrInvitationInvalid = errors.New("invitation is invalid or has expired")
+var ErrProjectNotFound = errors.New("project not found")
 
 type EnsureProjectInput struct {
 	ExternalKey string
@@ -29,9 +30,17 @@ type EnsureProjectInput struct {
 
 type ProjectRepository interface {
 	EnsureProject(ctx context.Context, userID string, input EnsureProjectInput) (pages.Project, error)
+	CreateProject(ctx context.Context, userID string, input EnsureProjectInput) (pages.Project, error)
+	GetProject(ctx context.Context, userID, projectID string) (pages.Project, error)
+	UpdateProject(ctx context.Context, userID, projectID string, input EnsureProjectInput) (pages.Project, error)
+	DeleteProject(ctx context.Context, userID, projectID string) error
 	ListProjects(ctx context.Context, userID string) ([]pages.Project, error)
 	ListMembers(ctx context.Context, userID, projectID string) ([]pages.ProjectMember, error)
-	CreateInvitation(ctx context.Context, userID, projectID string, tokenHash []byte, expiresAt time.Time) error
+	UpdateMemberRole(ctx context.Context, userID, projectID, memberID, role string) (pages.ProjectMember, error)
+	RemoveMember(ctx context.Context, userID, projectID, memberID string) error
+	CreateInvitation(ctx context.Context, userID, projectID string, tokenHash []byte, expiresAt time.Time) (string, error)
+	ListInvitations(ctx context.Context, userID, projectID string) ([]pages.InvitationListItem, error)
+	RevokeInvitation(ctx context.Context, userID, projectID, invitationID string) error
 	InvitationByTokenHash(ctx context.Context, tokenHash []byte) (pages.InvitationPreview, error)
 	AcceptInvitation(ctx context.Context, userID string, tokenHash []byte) (pages.Project, error)
 }
@@ -45,14 +54,21 @@ func NewProjectService(repository ProjectRepository) *ProjectService {
 }
 
 func (s *ProjectService) EnsureProject(ctx context.Context, userID string, input EnsureProjectInput) (pages.Project, error) {
+	if !normalizeProjectInput(&input, true) {
+		return pages.Project{}, ErrProjectInput
+	}
+	return s.repository.EnsureProject(ctx, userID, input)
+}
+
+func normalizeProjectInput(input *EnsureProjectInput, requireExternalKey bool) bool {
 	input.ExternalKey = strings.TrimSpace(input.ExternalKey)
 	input.Title = strings.TrimSpace(input.Title)
 	input.Description = strings.TrimSpace(input.Description)
 	input.Cover = strings.TrimSpace(input.Cover)
 	input.Tag = strings.TrimSpace(input.Tag)
 	input.Deadline = strings.TrimSpace(input.Deadline)
-	if input.ExternalKey == "" || utf8.RuneCountInString(input.ExternalKey) > 200 || input.Title == "" || utf8.RuneCountInString(input.Title) > 200 || input.Progress < 0 || input.Progress > 100 {
-		return pages.Project{}, ErrProjectInput
+	if (requireExternalKey && input.ExternalKey == "") || utf8.RuneCountInString(input.ExternalKey) > 200 || input.Title == "" || utf8.RuneCountInString(input.Title) > 200 || utf8.RuneCountInString(input.Description) > 2000 || input.Progress < 0 || input.Progress > 100 {
+		return false
 	}
 	if input.Cover == "" {
 		input.Cover = "/new/newsea.jpg"
@@ -60,7 +76,32 @@ func (s *ProjectService) EnsureProject(ctx context.Context, userID string, input
 	if input.Tag == "" {
 		input.Tag = "blue"
 	}
-	return s.repository.EnsureProject(ctx, userID, input)
+	return true
+}
+
+func (s *ProjectService) CreateProject(ctx context.Context, userID string, input EnsureProjectInput) (pages.Project, error) {
+	if !normalizeProjectInput(&input, false) {
+		return pages.Project{}, ErrProjectInput
+	}
+	return s.repository.CreateProject(ctx, userID, input)
+}
+func (s *ProjectService) GetProject(ctx context.Context, userID, projectID string) (pages.Project, error) {
+	if !validID(projectID) {
+		return pages.Project{}, ErrProjectInput
+	}
+	return s.repository.GetProject(ctx, userID, projectID)
+}
+func (s *ProjectService) UpdateProject(ctx context.Context, userID, projectID string, input EnsureProjectInput) (pages.Project, error) {
+	if !validID(projectID) || !normalizeProjectInput(&input, false) {
+		return pages.Project{}, ErrProjectInput
+	}
+	return s.repository.UpdateProject(ctx, userID, projectID, input)
+}
+func (s *ProjectService) DeleteProject(ctx context.Context, userID, projectID string) error {
+	if !validID(projectID) {
+		return ErrProjectInput
+	}
+	return s.repository.DeleteProject(ctx, userID, projectID)
 }
 
 func (s *ProjectService) ListProjects(ctx context.Context, userID string) ([]pages.Project, error) {
@@ -68,7 +109,23 @@ func (s *ProjectService) ListProjects(ctx context.Context, userID string) ([]pag
 }
 
 func (s *ProjectService) ListMembers(ctx context.Context, userID, projectID string) ([]pages.ProjectMember, error) {
+	if !validID(projectID) {
+		return nil, ErrProjectInput
+	}
 	return s.repository.ListMembers(ctx, userID, projectID)
+}
+
+func (s *ProjectService) UpdateMemberRole(ctx context.Context, userID, projectID, memberID, role string) (pages.ProjectMember, error) {
+	if !validID(projectID) || !validID(memberID) || (role != "admin" && role != "member") {
+		return pages.ProjectMember{}, ErrProjectInput
+	}
+	return s.repository.UpdateMemberRole(ctx, userID, projectID, memberID, role)
+}
+func (s *ProjectService) RemoveMember(ctx context.Context, userID, projectID, memberID string) error {
+	if !validID(projectID) || !validID(memberID) {
+		return ErrProjectInput
+	}
+	return s.repository.RemoveMember(ctx, userID, projectID, memberID)
 }
 
 func (s *ProjectService) CreateInvitation(ctx context.Context, userID, projectID string) (pages.CreatedInvitation, error) {
@@ -79,10 +136,27 @@ func (s *ProjectService) CreateInvitation(ctx context.Context, userID, projectID
 	token := base64.RawURLEncoding.EncodeToString(raw)
 	hash := sha256.Sum256([]byte(token))
 	expiresAt := time.Now().UTC().Add(7 * 24 * time.Hour)
-	if err := s.repository.CreateInvitation(ctx, userID, projectID, hash[:], expiresAt); err != nil {
+	if !validID(projectID) {
+		return pages.CreatedInvitation{}, ErrProjectInput
+	}
+	id, err := s.repository.CreateInvitation(ctx, userID, projectID, hash[:], expiresAt)
+	if err != nil {
 		return pages.CreatedInvitation{}, err
 	}
-	return pages.CreatedInvitation{Token: token, ExpiresAt: expiresAt}, nil
+	return pages.CreatedInvitation{ID: id, Token: token, ExpiresAt: expiresAt}, nil
+}
+
+func (s *ProjectService) ListInvitations(ctx context.Context, userID, projectID string) ([]pages.InvitationListItem, error) {
+	if !validID(projectID) {
+		return nil, ErrProjectInput
+	}
+	return s.repository.ListInvitations(ctx, userID, projectID)
+}
+func (s *ProjectService) RevokeInvitation(ctx context.Context, userID, projectID, invitationID string) error {
+	if !validID(projectID) || !validID(invitationID) {
+		return ErrProjectInput
+	}
+	return s.repository.RevokeInvitation(ctx, userID, projectID, invitationID)
 }
 
 func (s *ProjectService) Invitation(ctx context.Context, token string) (pages.InvitationPreview, error) {

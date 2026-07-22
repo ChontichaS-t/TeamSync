@@ -8,6 +8,7 @@ type InviteProjectModalProps = {
   projectId: string | null;
   projectTitle: string;
   onClose: () => void;
+  onCreated?: () => void | Promise<void>;
 };
 
 type InvitationResponse = {
@@ -15,7 +16,7 @@ type InvitationResponse = {
   expiresAt: string;
 };
 
-export function InviteProjectModal({ isOpen, projectId, projectTitle, onClose }: InviteProjectModalProps) {
+export function InviteProjectModal({ isOpen, projectId, projectTitle, onClose, onCreated }: InviteProjectModalProps) {
   const [inviteLink, setInviteLink] = useState("");
   const [expiresAt, setExpiresAt] = useState("");
   const [error, setError] = useState("");
@@ -52,6 +53,7 @@ export function InviteProjectModal({ isOpen, projectId, projectTitle, onClose }:
       }
       setInviteLink(`${window.location.origin}/join/${result.token}`);
       setExpiresAt(result.expiresAt || "");
+      await onCreated?.();
     } catch {
       setError("ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้");
     } finally {
@@ -105,7 +107,6 @@ export function InviteProjectModal({ isOpen, projectId, projectTitle, onClose }:
 
           {!inviteLink ? (
             <div className="invite-create-state">
-              <span className="invite-link-illustration"><Link2 aria-hidden="true" /></span>
               <h3>สร้างลิงก์สำหรับทีมของคุณ</h3>
               <p>ส่งลิงก์เดียวให้เพื่อนได้หลายคน และสมาชิกที่อยู่ในทีมแล้วจะไม่ถูกเพิ่มซ้ำ</p>
               <button type="button" className="invite-primary-button" onClick={createInvitation} disabled={isCreating || !projectId}>

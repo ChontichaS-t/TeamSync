@@ -66,6 +66,94 @@ func (r *ProjectRepository) EnsureProject(ctx context.Context, userID string, in
 	return project, nil
 }
 
+func (r *ProjectRepository) CreateProject(ctx context.Context, userID string, input service.EnsureProjectInput) (pages.Project, error) {
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return pages.Project{}, err
+	}
+	defer tx.Rollback(ctx)
+	var project pages.Project
+	err = tx.QueryRow(ctx, `
+		INSERT INTO projects(owner_id,external_key,title,description,cover,tag,deadline,progress)
+		VALUES($1,'created:' || gen_random_uuid()::text,$2,$3,$4,$5,$6,$7)
+		RETURNING id,title,description,cover,tag,deadline,progress
+	`, userID, input.Title, input.Description, input.Cover, input.Tag, input.Deadline, input.Progress).Scan(&project.ID, &project.Title, &project.Description, &project.Cover, &project.Tag, &project.Deadline, &project.Progress)
+	if err != nil {
+		return pages.Project{}, fmt.Errorf("create project: %w", err)
+	}
+	if _, err = tx.Exec(ctx, `INSERT INTO project_members(project_id,user_id,role) VALUES($1,$2,'owner')`, project.ID, userID); err != nil {
+		return pages.Project{}, err
+	}
+	if _, err = tx.Exec(ctx, `INSERT INTO project_activity_logs(project_id,actor_id,event_type,message) VALUES($1,$2,'project.created',$3)`, project.ID, userID, "สร้างโปรเจกต์ '"+project.Title+"'"); err != nil {
+		return pages.Project{}, err
+	}
+	if err = tx.Commit(ctx); err != nil {
+		return pages.Project{}, err
+	}
+	project.Role = "owner"
+	project.MemberCount = 1
+	return project, nil
+}
+
+func (r *ProjectRepository) GetProject(ctx context.Context, userID, projectID string) (pages.Project, error) {
+	var project pages.Project
+	err := r.pool.QueryRow(ctx, `
+		SELECT project.id,project.title,project.description,project.cover,project.tag,project.deadline,project.progress,member.role,
+		       (SELECT count(*) FROM project_members count_member WHERE count_member.project_id=project.id)
+		FROM projects project JOIN project_members member ON member.project_id=project.id
+		WHERE project.id=$1 AND member.user_id=$2
+	`, projectID, userID).Scan(&project.ID, &project.Title, &project.Description, &project.Cover, &project.Tag, &project.Deadline, &project.Progress, &project.Role, &project.MemberCount)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return pages.Project{}, service.ErrProjectNotFound
+	}
+	if err != nil {
+		return pages.Project{}, fmt.Errorf("get project: %w", err)
+	}
+	return project, nil
+}
+
+func (r *ProjectRepository) UpdateProject(ctx context.Context, userID, projectID string, input service.EnsureProjectInput) (pages.Project, error) {
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return pages.Project{}, err
+	}
+	defer tx.Rollback(ctx)
+	var project pages.Project
+	err = tx.QueryRow(ctx, `
+		UPDATE projects project SET title=$3,description=$4,cover=$5,tag=$6,deadline=$7,progress=$8,updated_at=now()
+		FROM project_members member
+		WHERE project.id=$1 AND member.project_id=project.id AND member.user_id=$2 AND member.role IN ('owner','admin')
+		RETURNING project.id,project.title,project.description,project.cover,project.tag,project.deadline,project.progress,member.role
+	`, projectID, userID, input.Title, input.Description, input.Cover, input.Tag, input.Deadline, input.Progress).Scan(&project.ID, &project.Title, &project.Description, &project.Cover, &project.Tag, &project.Deadline, &project.Progress, &project.Role)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return pages.Project{}, service.ErrProjectForbidden
+	}
+	if err != nil {
+		return pages.Project{}, err
+	}
+	if err = tx.QueryRow(ctx, `SELECT count(*) FROM project_members WHERE project_id=$1`, projectID).Scan(&project.MemberCount); err != nil {
+		return pages.Project{}, err
+	}
+	if _, err = tx.Exec(ctx, `INSERT INTO project_activity_logs(project_id,actor_id,event_type,message) VALUES($1,$2,'project.updated',$3)`, projectID, userID, "แก้ไขโปรเจกต์ '"+input.Title+"'"); err != nil {
+		return pages.Project{}, err
+	}
+	if err = tx.Commit(ctx); err != nil {
+		return pages.Project{}, err
+	}
+	return project, nil
+}
+
+func (r *ProjectRepository) DeleteProject(ctx context.Context, userID, projectID string) error {
+	command, err := r.pool.Exec(ctx, `DELETE FROM projects project USING project_members member WHERE project.id=$1 AND member.project_id=project.id AND member.user_id=$2 AND member.role='owner'`, projectID, userID)
+	if err != nil {
+		return err
+	}
+	if command.RowsAffected() == 0 {
+		return service.ErrProjectForbidden
+	}
+	return nil
+}
+
 func (r *ProjectRepository) ListProjects(ctx context.Context, userID string) ([]pages.Project, error) {
 	rows, err := r.pool.Query(ctx, `
 		SELECT project.id, project.title, project.description, project.cover, project.tag,
@@ -123,20 +211,142 @@ func (r *ProjectRepository) ListMembers(ctx context.Context, userID, projectID s
 	return members, nil
 }
 
-func (r *ProjectRepository) CreateInvitation(ctx context.Context, userID, projectID string, tokenHash []byte, expiresAt time.Time) error {
-	command, err := r.pool.Exec(ctx, `
+func (r *ProjectRepository) UpdateMemberRole(ctx context.Context, userID, projectID, memberID, role string) (pages.ProjectMember, error) {
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return pages.ProjectMember{}, err
+	}
+	defer tx.Rollback(ctx)
+	var member pages.ProjectMember
+	err = tx.QueryRow(ctx, `
+		UPDATE project_members target SET role=$4
+		FROM project_members viewer,users account
+		WHERE target.project_id=$1 AND target.user_id=$3 AND target.role<>'owner'
+		  AND viewer.project_id=target.project_id AND viewer.user_id=$2 AND viewer.role='owner'
+		  AND account.id=target.user_id
+		RETURNING account.id,account.display_name,account.email,target.role,target.joined_at
+	`, projectID, userID, memberID, role).Scan(&member.ID, &member.DisplayName, &member.Email, &member.Role, &member.JoinedAt)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return pages.ProjectMember{}, service.ErrProjectForbidden
+	}
+	if err != nil {
+		return pages.ProjectMember{}, err
+	}
+	if _, err = tx.Exec(ctx, `INSERT INTO project_activity_logs(project_id,actor_id,event_type,message) VALUES($1,$2,'member.role_updated',$3)`, projectID, userID, fmt.Sprintf("เปลี่ยนสิทธิ์ %s เป็น %s", member.DisplayName, role)); err != nil {
+		return pages.ProjectMember{}, err
+	}
+	if err = tx.Commit(ctx); err != nil {
+		return pages.ProjectMember{}, err
+	}
+	return member, nil
+}
+
+func (r *ProjectRepository) RemoveMember(ctx context.Context, userID, projectID, memberID string) error {
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+	var name string
+	err = tx.QueryRow(ctx, `
+		DELETE FROM project_members target USING project_members viewer,users account
+		WHERE target.project_id=$1 AND target.user_id=$3 AND target.role<>'owner'
+		  AND viewer.project_id=target.project_id AND viewer.user_id=$2
+		  AND (viewer.role='owner' OR (viewer.role='admin' AND target.role='member') OR viewer.user_id=target.user_id)
+		  AND account.id=target.user_id RETURNING account.display_name
+	`, projectID, userID, memberID).Scan(&name)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return service.ErrProjectForbidden
+	}
+	if err != nil {
+		return err
+	}
+	if _, err = tx.Exec(ctx, `UPDATE tasks SET assignee_id=NULL,updated_at=now() WHERE project_id=$1 AND assignee_id=$2`, projectID, memberID); err != nil {
+		return err
+	}
+	if _, err = tx.Exec(ctx, `UPDATE feedback SET assignee_id=NULL,updated_at=now() WHERE project_id=$1 AND assignee_id=$2`, projectID, memberID); err != nil {
+		return err
+	}
+	if err = logActivity(ctx, tx, projectID, userID, "member.removed", "นำสมาชิกออกจากโปรเจกต์: "+name); err != nil {
+		return err
+	}
+	return tx.Commit(ctx)
+}
+
+func (r *ProjectRepository) CreateInvitation(ctx context.Context, userID, projectID string, tokenHash []byte, expiresAt time.Time) (string, error) {
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return "", fmt.Errorf("begin create project invitation: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	var id string
+	err = tx.QueryRow(ctx, `
 		INSERT INTO project_invitations (project_id, token_hash, created_by, expires_at)
 		SELECT member.project_id, $3, $1, $4
 		FROM project_members member
 		WHERE member.project_id = $2 AND member.user_id = $1 AND member.role IN ('owner', 'admin')
-	`, userID, projectID, tokenHash, expiresAt)
+		RETURNING id
+	`, userID, projectID, tokenHash, expiresAt).Scan(&id)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return "", service.ErrProjectForbidden
+	}
 	if err != nil {
-		return fmt.Errorf("create project invitation: %w", err)
+		return "", fmt.Errorf("create project invitation: %w", err)
+	}
+	if err = logActivity(ctx, tx, projectID, userID, "invitation.created", "สร้างลิงก์เชิญเข้าร่วมโปรเจกต์"); err != nil {
+		return "", fmt.Errorf("log project invitation: %w", err)
+	}
+	if err = tx.Commit(ctx); err != nil {
+		return "", fmt.Errorf("commit project invitation: %w", err)
+	}
+	return id, nil
+}
+
+func (r *ProjectRepository) ListInvitations(ctx context.Context, userID, projectID string) ([]pages.InvitationListItem, error) {
+	rows, err := r.pool.Query(ctx, `SELECT invitation.id,invitation.role,invitation.expires_at,invitation.used_count,invitation.max_uses,invitation.revoked_at IS NOT NULL,invitation.created_at FROM project_invitations invitation JOIN project_members member ON member.project_id=invitation.project_id WHERE invitation.project_id=$1 AND member.user_id=$2 AND member.role IN ('owner','admin') ORDER BY invitation.created_at DESC`, projectID, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := make([]pages.InvitationListItem, 0)
+	for rows.Next() {
+		var item pages.InvitationListItem
+		if err := rows.Scan(&item.ID, &item.Role, &item.ExpiresAt, &item.UsedCount, &item.MaxUses, &item.Revoked, &item.CreatedAt); err != nil {
+			return nil, err
+		}
+		items = append(items, item)
+	}
+	if len(items) == 0 {
+		var allowed bool
+		if err := r.pool.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM project_members WHERE project_id=$1 AND user_id=$2 AND role IN ('owner','admin'))`, projectID, userID).Scan(&allowed); err != nil {
+			return nil, err
+		}
+		if !allowed {
+			return nil, service.ErrProjectForbidden
+		}
+	}
+	return items, rows.Err()
+}
+
+func (r *ProjectRepository) RevokeInvitation(ctx context.Context, userID, projectID, invitationID string) error {
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("begin revoke project invitation: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	command, err := tx.Exec(ctx, `UPDATE project_invitations invitation SET revoked_at=now() FROM project_members member WHERE invitation.id=$3 AND invitation.project_id=$1 AND member.project_id=invitation.project_id AND member.user_id=$2 AND member.role IN ('owner','admin') AND invitation.revoked_at IS NULL`, projectID, userID, invitationID)
+	if err != nil {
+		return err
 	}
 	if command.RowsAffected() == 0 {
 		return service.ErrProjectForbidden
 	}
-	return nil
+	if err = logActivity(ctx, tx, projectID, userID, "invitation.revoked", "ยกเลิกลิงก์เชิญเข้าร่วมโปรเจกต์"); err != nil {
+		return fmt.Errorf("log revoked project invitation: %w", err)
+	}
+	return tx.Commit(ctx)
 }
 
 func (r *ProjectRepository) InvitationByTokenHash(ctx context.Context, tokenHash []byte) (pages.InvitationPreview, error) {

@@ -29,6 +29,7 @@ type InvitationPreview struct {
 }
 
 type CreatedInvitation struct {
+	ID        string    `json:"id"`
 	Token     string    `json:"token"`
 	ExpiresAt time.Time `json:"expiresAt"`
 }

@@ -10,6 +10,7 @@ import { Combobox } from "@/components/ui/combobox";
 import { AlertDialogSmall } from "@/components/global/AlertDialogSmall";
 import { UserProfileMenu } from "@/components/global/UserProfileMenu";
 import { InviteProjectModal } from "@/components/project/InviteProjectModal";
+import { apiFetch } from "@/lib/api";
 
 export type TaskStatus = "ยังไม่เริ่ม" | "กำลังทำ" | "รอตรวจ" | "เสร็จแล้ว";
 
@@ -26,8 +27,10 @@ export interface TaskItem {
 }
 
 export interface MemberItem {
+  id: string;
   name: string;
   role: string;
+  projectRole: "owner" | "admin" | "member";
   currentTasks: string;
   avatarUrl?: string;
 }
@@ -58,6 +61,11 @@ export interface TimelineItem {
   date: string;
   event: string;
 }
+
+type ApiPerson = { id: string; displayName: string } | null;
+type ApiTask = { id: string; title: string; assignee: ApiPerson; dueDate: string; status: TaskStatus; priority: "ต่ำ" | "ปานกลาง" | "สูง"; source: string; meetingId: string | null; feedbackId: string | null };
+type ApiMeeting = { id: string; title: string; date: string; summary: string[]; agreed: string[] };
+type ApiFeedback = { id: string; topic: string; provider: string; assignee: ApiPerson; status: FeedbackStatus; result: string; meetingId: string | null; taskId?: string | null };
 
 type EditConfirmation = {
   entityLabel: string;
@@ -173,145 +181,6 @@ function TaskStatusCombobox({
   );
 }
 
-// Initial Data matching TeamSync PDF spec
-const initialMembers: MemberItem[] = [
-  { name: "Chonticha", role: "Frontend Developer", currentTasks: "กำลังทำ 3 งาน" },
-  { name: "Beam", role: "Backend Developer", currentTasks: "กำลังทำ 2 งาน" },
-  { name: "Jane", role: "UI/UX Designer", currentTasks: "กำลัง Review 1 งาน" },
-];
-
-const initialTasks: TaskItem[] = [
-  {
-    id: "t1",
-    title: "ออกแบบหน้า Monitor ใหม่",
-    assignee: "Chonticha",
-    dueDate: "25 กรกฎาคม 2026",
-    status: "กำลังทำ",
-    priority: "สูง",
-    source: "Feedback จาก: ประชุมครั้งที่ 2 — 22 กรกฎาคม 2026",
-    meetingId: "m2",
-    feedbackId: "f1",
-  },
-  {
-    id: "t2",
-    title: "พัฒนา Backend รองรับ Walkover",
-    assignee: "Beam",
-    dueDate: "28 กรกฎาคม 2026",
-    status: "กำลังทำ",
-    priority: "สูง",
-    source: "Feedback จาก: ประชุมครั้งที่ 2 — 22 กรกฎาคม 2026",
-    meetingId: "m2",
-    feedbackId: "f2",
-  },
-  {
-    id: "t3",
-    title: "เพิ่ม Court Filter ใน Table View",
-    assignee: "Chonticha",
-    dueDate: "26 กรกฎาคม 2026",
-    status: "ยังไม่เริ่ม",
-    priority: "ปานกลาง",
-    source: "สิ่งที่ทีมตกลงกัน",
-  },
-  {
-    id: "t4",
-    title: "Review UI รอบแก้ไขหน้า Monitor",
-    assignee: "Jane",
-    dueDate: "24 กรกฎาคม 2026",
-    status: "รอตรวจ",
-    priority: "สูง",
-    source: "Feedback รอบ 2",
-  },
-  {
-    id: "t5",
-    title: "ออกแบบ ER Diagram ของระบบ",
-    assignee: "Beam",
-    dueDate: "15 กรกฎาคม 2026",
-    status: "เสร็จแล้ว",
-    priority: "สูง",
-    source: "Kickoff Meeting",
-  },
-  {
-    id: "t6",
-    title: "แก้ไขปุ่ม Export PDF บนมือถือ",
-    assignee: "Beam",
-    dueDate: "18 กรกฎาคม 2026",
-    status: "เสร็จแล้ว",
-    priority: "สูง",
-    source: "Feedback จาก: ประชุม Kickoff ครั้งที่ 1 — 15 กรกฎาคม 2026",
-    meetingId: "m1",
-    feedbackId: "f3",
-  },
-];
-
-const initialFeedback: FeedbackItem[] = [
-  {
-    id: "f1",
-    topic: "ออกแบบหน้า Monitor ใหม่",
-    provider: "อาจารย์ที่ปรึกษา",
-    round: "ประชุมครั้งที่ 2 — 22 กรกฎาคม 2026",
-    assignee: "Chonticha",
-    status: "กำลังแก้ไข",
-    result: "ปรับเป็น Table View และเพิ่ม Filter",
-    meetingId: "m2",
-  },
-  {
-    id: "f2",
-    topic: "พัฒนา Backend รองรับ Walkover",
-    provider: "ทีมงาน (Jane)",
-    round: "ประชุมครั้งที่ 2 — 22 กรกฎาคม 2026",
-    assignee: "Beam",
-    status: "กำลังแก้ไข",
-    result: "เพิ่ม API endpoint walkover",
-    meetingId: "m2",
-  },
-  {
-    id: "f3",
-    topic: "แก้ไขปุ่ม Export PDF บนมือถือ",
-    provider: "อาจารย์ที่ปรึกษา",
-    round: "ประชุม Kickoff ครั้งที่ 1 — 15 กรกฎาคม 2026",
-    assignee: "Beam",
-    status: "แก้ไขแล้ว",
-    result: "แก้ไข Event handler รองรับ Touch Devices",
-    meetingId: "m1",
-  },
-];
-
-const initialMeetings: MeetingItem[] = [
-  {
-    id: "m2",
-    title: "ประชุมครั้งที่ 2",
-    date: "22 กรกฎาคม 2026",
-    summary: [
-      "หน้า Monitor มีข้อมูลเยอะเกินไป",
-      "ต้องเพิ่ม Filter ตามสนาม",
-      "Backend ยังไม่รองรับ Walkover",
-    ],
-    agreed: [
-      "เปลี่ยน Layout เป็น Table",
-      "เพิ่ม Court Filter",
-      "ส่ง UI ใหม่วันศุกร์ (25 ก.ค.)",
-    ],
-  },
-  {
-    id: "m1",
-    title: "ประชุม Kickoff ครั้งที่ 1",
-    date: "15 กรกฎาคม 2026",
-    summary: ["ตกลง Scope MVP 7 เมนูหลัก", "มอบหมายหน้าที่ภายในทีม"],
-    agreed: ["ใช้ TeamSync เป็นระบบศูนย์กลาง", "นัด Demo ทุกสัปดาห์"],
-  },
-];
-
-const initialTimeline: TimelineItem[] = [
-  { id: "tl4", date: "24 กรกฎาคม 2026", event: "งานออกแบบ Monitor เปลี่ยนเป็นรอตรวจ" },
-  { id: "tl3", date: "22 กรกฎาคม 2026", event: "ประชุมทีมและตัดสินใจเปลี่ยน Layout" },
-  { id: "tl2", date: "21 กรกฎาคม 2026", event: "มอบหมายงานออกแบบ Monitor ให้ Chonticha" },
-  { id: "tl1", date: "20 กรกฎาคม 2026", event: "เพิ่ม Feedback รอบที่ 2" },
-];
-
-function generateUniqueId(prefix: string): string {
-  return `${prefix}_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-}
-
 function formatThaiDate(date?: Date): string {
   if (!date) return "ระบุวันส่ง";
   const day = date.getDate();
@@ -335,6 +204,27 @@ function parseThaiDate(value: string): Date | undefined {
   const year = Number(yearValue);
   if (!Number.isInteger(day) || month < 0 || !Number.isInteger(year)) return undefined;
   return new Date(year, month, day);
+}
+
+function toISODate(date?: Date): string {
+  if (!date) return new Date().toISOString().slice(0, 10);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function fromISODate(value: string): string {
+  const [year, month, day] = value.split("-").map(Number);
+  return formatThaiDate(new Date(year, month - 1, day));
+}
+
+function mapApiTask(task: ApiTask): TaskItem {
+  return { ...task, assignee: task.assignee?.displayName || "ยังไม่มอบหมาย", dueDate: fromISODate(task.dueDate), meetingId: task.meetingId || undefined, feedbackId: task.feedbackId || undefined };
+}
+
+function mapApiMeeting(meeting: ApiMeeting): MeetingItem {
+  return { ...meeting, date: fromISODate(meeting.date) };
 }
 
 const THEME_MAP = {
@@ -367,11 +257,12 @@ export default function ProjectPage() {
   } as React.CSSProperties;
 
   const [activeTab, setActiveTab] = useState<"all" | "tasks" | "feedback" | "meetings" | "members" | "timeline">("all");
-  const [tasks, setTasks] = useState<TaskItem[]>(initialTasks);
-  const [feedbackList, setFeedbackList] = useState<FeedbackItem[]>(initialFeedback);
-  const [meetings, setMeetings] = useState<MeetingItem[]>(initialMeetings);
-  const [timeline, setTimeline] = useState<TimelineItem[]>(initialTimeline);
-  const [members, setMembers] = useState<MemberItem[]>(initialMembers);
+  const [tasks, setTasks] = useState<TaskItem[]>([]);
+  const [feedbackList, setFeedbackList] = useState<FeedbackItem[]>([]);
+  const [meetings, setMeetings] = useState<MeetingItem[]>([]);
+  const [timeline, setTimeline] = useState<TimelineItem[]>([]);
+  const [members, setMembers] = useState<MemberItem[]>([]);
+  const [apiError, setApiError] = useState("");
   const [backendProjectId, setBackendProjectId] = useState<string | null>(requestedProjectId);
   const [canInviteMembers, setCanInviteMembers] = useState(!requestedProjectId);
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
@@ -441,28 +332,24 @@ export default function ProjectPage() {
   useEffect(() => {
     const controller = new AbortController();
 
-    async function loadProjectMembers(projectId: string) {
-      const response = await fetch(`/api/projects/${encodeURIComponent(projectId)}/members`, {
-        credentials: "include",
-        cache: "no-store",
-        signal: controller.signal,
-      });
-      if (!response.ok) return;
-      const result = (await response.json()) as {
-        members: Array<{ displayName: string; role: "owner" | "admin" | "member" }>;
-      };
-      setMembers((current) => {
-        const next = [...current];
-        for (const member of result.members) {
-          if (next.some((item) => item.name.toLowerCase() === member.displayName.toLowerCase())) continue;
-          next.push({
-            name: member.displayName,
-            role: member.role === "owner" ? "เจ้าของโปรเจกต์" : member.role === "admin" ? "ผู้ดูแลโปรเจกต์" : "สมาชิกทีม",
-            currentTasks: "กำลังทำ 0 งาน",
-          });
-        }
-        return next;
-      });
+    async function loadWorkspace(projectId: string) {
+      const encoded = encodeURIComponent(projectId);
+      const [memberResult, taskResult, meetingResult, feedbackResult, activityResult] = await Promise.all([
+        apiFetch<{ members: Array<{ id: string; displayName: string; role: "owner" | "admin" | "member" }> }>(`/api/projects/${encoded}/members`, { signal: controller.signal }),
+        apiFetch<{ tasks: ApiTask[] }>(`/api/projects/${encoded}/tasks`, { signal: controller.signal }),
+        apiFetch<{ meetings: ApiMeeting[] }>(`/api/projects/${encoded}/meetings`, { signal: controller.signal }),
+        apiFetch<{ feedback: ApiFeedback[] }>(`/api/projects/${encoded}/feedback`, { signal: controller.signal }),
+        apiFetch<{ activity: Array<{ id: string; createdAt: string; message: string }> }>(`/api/projects/${encoded}/activity?limit=100`, { signal: controller.signal }),
+      ]);
+      setTasks(taskResult.tasks.map(mapApiTask));
+      setMeetings(meetingResult.meetings.map(mapApiMeeting));
+      const meetingMap = new Map(meetingResult.meetings.map((meeting) => [meeting.id, meeting]));
+      setFeedbackList(feedbackResult.feedback.map((feedback) => {
+        const meeting = feedback.meetingId ? meetingMap.get(feedback.meetingId) : undefined;
+        return { ...feedback, assignee: feedback.assignee?.displayName || "ยังไม่มอบหมาย", meetingId: feedback.meetingId || undefined, round: meeting ? `${meeting.title} — ${fromISODate(meeting.date)}` : "ไม่ได้มาจากการประชุม" };
+      }));
+      setTimeline(activityResult.activity.map((item) => ({ id: item.id, date: new Intl.DateTimeFormat("th-TH", { dateStyle: "medium" }).format(new Date(item.createdAt)), event: item.message })));
+      setMembers(memberResult.members.map((member, index) => ({ id: member.id, name: member.displayName, projectRole: member.role, role: member.role === "owner" ? "เจ้าของโปรเจกต์" : member.role === "admin" ? "ผู้ดูแลโปรเจกต์" : "สมาชิกทีม", currentTasks: `กำลังทำ ${taskResult.tasks.filter((task) => task.assignee?.id === member.id && task.status !== "เสร็จแล้ว").length} งาน`, avatarUrl: `/cv${(index % 5) + 1}.png` })));
     }
 
     async function prepareProject() {
@@ -491,7 +378,7 @@ export default function ProjectPage() {
           setCanInviteMembers(true);
         }
         if (projectId) {
-          await loadProjectMembers(projectId);
+          await loadWorkspace(projectId);
           if (requestedProjectId) {
             const projectsResponse = await fetch("/api/projects", {
               credentials: "include",
@@ -510,6 +397,7 @@ export default function ProjectPage() {
       } catch (error) {
         if (!(error instanceof DOMException && error.name === "AbortError")) {
           console.error("Unable to prepare project collaboration", error);
+          setApiError(error instanceof Error ? error.message : "ไม่สามารถโหลดข้อมูลโปรเจกต์ได้");
         }
       }
     }
@@ -518,16 +406,50 @@ export default function ProjectPage() {
     return () => controller.abort();
   }, [coverImage, projectTitle, requestedProjectId]);
 
-  const handleDeleteMember = (name: string) => {
-    setMembers((prev) => prev.filter((m) => m.name !== name));
-    setTimeline((prevTl) => [
-      {
-        id: generateUniqueId("tl"),
-        date: "วันนี้",
-        event: `ลบสมาชิก '${name}' ออกจากทีม`,
-      },
-      ...prevTl,
+  const refreshActivity = async () => {
+    if (!backendProjectId) return;
+    const result = await apiFetch<{ activity: Array<{ id: string; createdAt: string; message: string }> }>(`/api/projects/${encodeURIComponent(backendProjectId)}/activity?limit=100`);
+    setTimeline(result.activity.map((item) => ({ id: item.id, date: new Intl.DateTimeFormat("th-TH", { dateStyle: "medium" }).format(new Date(item.createdAt)), event: item.message })));
+  };
+
+  const refreshWorkItems = async () => {
+    if (!backendProjectId) return;
+    const encoded = encodeURIComponent(backendProjectId);
+    const [taskResult, meetingResult, feedbackResult] = await Promise.all([
+      apiFetch<{ tasks: ApiTask[] }>(`/api/projects/${encoded}/tasks`),
+      apiFetch<{ meetings: ApiMeeting[] }>(`/api/projects/${encoded}/meetings`),
+      apiFetch<{ feedback: ApiFeedback[] }>(`/api/projects/${encoded}/feedback`),
     ]);
+    const meetingMap = new Map(meetingResult.meetings.map((meeting) => [meeting.id, meeting]));
+    setTasks(taskResult.tasks.map(mapApiTask));
+    setMeetings(meetingResult.meetings.map(mapApiMeeting));
+    setFeedbackList(feedbackResult.feedback.map((feedback) => {
+      const meeting = feedback.meetingId ? meetingMap.get(feedback.meetingId) : undefined;
+      return { ...feedback, assignee: feedback.assignee?.displayName || "ยังไม่มอบหมาย", meetingId: feedback.meetingId || undefined, round: meeting ? `${meeting.title} — ${fromISODate(meeting.date)}` : "ไม่ได้มาจากการประชุม" };
+    }));
+    await refreshActivity();
+  };
+
+  const assigneeId = (name: string) => members.find((member) => member.name === name)?.id || "";
+
+  const runMutation = async (action: () => Promise<void>, fallback: string) => {
+    setApiError("");
+    try {
+      await action();
+    } catch (error) {
+      setApiError(error instanceof Error ? error.message : fallback);
+    }
+  };
+
+  const handleDeleteMember = async (member: MemberItem) => {
+    if (!backendProjectId || !member.id) return;
+    try {
+      await apiFetch<void>(`/api/projects/${encodeURIComponent(backendProjectId)}/members/${encodeURIComponent(member.id)}`, { method: "DELETE" });
+      setMembers((prev) => prev.filter((item) => item.id !== member.id));
+      await refreshActivity();
+    } catch (error) {
+      setApiError(error instanceof Error ? error.message : "ไม่สามารถนำสมาชิกออกได้");
+    }
   };
 
   useEffect(() => {
@@ -579,25 +501,30 @@ export default function ProjectPage() {
   const completedTasks = tasks.filter((t) => t.status === "เสร็จแล้ว").length;
   const inProgressTasks = tasks.filter((t) => t.status === "กำลังทำ").length;
   const pendingFeedback = feedbackList.filter((f) => f.status === "กำลังแก้ไข").length;
-  const progressPercent = Math.round((completedTasks / totalTasks) * 100);
+  const progressPercent = totalTasks ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
   // Handlers
   const handleStatusChange = (id: string, newStatus: TaskStatus) => {
     const targetTask = tasks.find((t) => t.id === id);
-    if (!targetTask || targetTask.status === newStatus) return;
+    if (!targetTask || targetTask.status === newStatus || !backendProjectId) return;
+    void runMutation(async () => {
+      await apiFetch<ApiTask>(`/api/projects/${encodeURIComponent(backendProjectId)}/tasks/${encodeURIComponent(id)}`, {
+        method: "PUT",
+        body: JSON.stringify({ title: targetTask.title, assigneeId: assigneeId(targetTask.assignee), dueDate: toISODate(parseThaiDate(targetTask.dueDate)), status: newStatus, priority: targetTask.priority, source: targetTask.source, meetingId: targetTask.meetingId || "" }),
+      });
+      await refreshWorkItems();
+    }, "ไม่สามารถเปลี่ยนสถานะงานได้");
+  };
 
-    setTasks((prev) =>
-      prev.map((t) => (t.id === id ? { ...t, status: newStatus } : t))
-    );
-
-    setTimeline((prevTl) => [
-      {
-        id: generateUniqueId("tl"),
-        date: "วันนี้",
-        event: `งาน '${targetTask.title}' เปลี่ยนสถานะเป็น ${newStatus}`,
-      },
-      ...prevTl,
-    ]);
+  const handleTaskDueDateChange = (task: TaskItem, dueDate: Date) => {
+    if (!backendProjectId) return;
+    void runMutation(async () => {
+      await apiFetch<ApiTask>(`/api/projects/${encodeURIComponent(backendProjectId)}/tasks/${encodeURIComponent(task.id)}`, {
+        method: "PUT",
+        body: JSON.stringify({ title: task.title, assigneeId: assigneeId(task.assignee), dueDate: toISODate(dueDate), status: task.status, priority: task.priority, source: task.source, meetingId: task.meetingId || "" }),
+      });
+      await refreshWorkItems();
+    }, "ไม่สามารถแก้ไขวันส่งงานได้");
   };
 
   const openNewTaskModal = () => {
@@ -631,63 +558,36 @@ export default function ProjectPage() {
     e.preventDefault();
     if (!newTaskTitle.trim()) return;
 
-    const formattedDate = formatThaiDate(taskDueDate);
-
     if (editingTask) {
       const taskId = editingTask.id;
       const taskTitle = newTaskTitle.trim();
       const taskAssignee = newTaskAssignee;
       const taskSource = newTaskSource.trim() || "จากการประชุมทีม";
       requestEditConfirmation("งาน", taskTitle, () => {
-        setTasks((prev) =>
-          prev.map((task) =>
-            task.id === taskId
-              ? {
-                  ...task,
-                  title: taskTitle,
-                  assignee: taskAssignee,
-                  dueDate: formattedDate,
-                  source: taskSource,
-                }
-              : task,
-          ),
-        );
-        setTimeline((prev) => [
-          { id: generateUniqueId("tl"), date: "วันนี้", event: `แก้ไขข้อมูลงาน '${taskTitle}'` },
-          ...prev,
-        ]);
-        closeTaskModal();
+        void runMutation(async () => {
+          if (!backendProjectId) return;
+          await apiFetch<ApiTask>(`/api/projects/${encodeURIComponent(backendProjectId)}/tasks/${encodeURIComponent(taskId)}`, { method: "PUT", body: JSON.stringify({ title: taskTitle, assigneeId: assigneeId(taskAssignee), dueDate: toISODate(taskDueDate), status: editingTask.status, priority: editingTask.priority, source: taskSource, meetingId: editingTask.meetingId || "" }) });
+          await refreshWorkItems();
+          closeTaskModal();
+        }, "ไม่สามารถแก้ไขงานได้");
       });
       return;
     }
 
-    const newTask: TaskItem = {
-      id: generateUniqueId("t"),
-      title: newTaskTitle.trim(),
-      assignee: newTaskAssignee,
-      dueDate: formattedDate,
-      status: "กำลังทำ",
-      priority: "ปานกลาง",
-      source: newTaskSource.trim() || "จากการประชุมทีม",
-    };
-
-    setTasks((prev) => [newTask, ...prev]);
-    setTimeline((prev) => [
-      { id: generateUniqueId("tl"), date: "วันนี้", event: `มอบหมายงาน '${newTask.title}' ให้ ${newTask.assignee} (ส่ง ${formattedDate})` },
-      ...prev,
-    ]);
-
-    setNewTaskTitle("");
-    setNewTaskSource("");
-    closeTaskModal();
+    void runMutation(async () => {
+      if (!backendProjectId) return;
+      await apiFetch<ApiTask>(`/api/projects/${encodeURIComponent(backendProjectId)}/tasks`, { method: "POST", body: JSON.stringify({ title: newTaskTitle.trim(), assigneeId: assigneeId(newTaskAssignee), dueDate: toISODate(taskDueDate), status: "กำลังทำ", priority: "ปานกลาง", source: newTaskSource.trim() || "จากการประชุมทีม", meetingId: "" }) });
+      await refreshWorkItems();
+      setNewTaskTitle(""); setNewTaskSource(""); closeTaskModal();
+    }, "ไม่สามารถเพิ่มงานได้");
   };
 
   const handleDeleteTask = (task: TaskItem) => {
-    setTasks((prev) => prev.filter((item) => item.id !== task.id));
-    setTimeline((prev) => [
-      { id: generateUniqueId("tl"), date: "วันนี้", event: `ลบงาน '${task.title}'` },
-      ...prev,
-    ]);
+    void runMutation(async () => {
+      if (!backendProjectId) return;
+      await apiFetch<void>(`/api/projects/${encodeURIComponent(backendProjectId)}/tasks/${encodeURIComponent(task.id)}`, { method: "DELETE" });
+      await refreshWorkItems();
+    }, "ไม่สามารถลบงานได้");
   };
 
   const openNewFeedbackModal = () => {
@@ -725,109 +625,37 @@ export default function ProjectPage() {
     e.preventDefault();
     if (!newFbTopic.trim()) return;
 
-    const formattedDate = formatThaiDate(taskDueDate);
     const selectedMeeting = meetings.find((meeting) => meeting.id === newFbMeetingId);
-    const meetingReference = selectedMeeting
-      ? `${selectedMeeting.title} — ${selectedMeeting.date}`
-      : "ไม่ได้มาจากการประชุม";
-    const taskSource = selectedMeeting
-      ? `Feedback จาก: ${meetingReference}`
-      : `Feedback จาก ${newFbProvider}`;
-
     if (editingFeedback) {
       const feedbackId = editingFeedback.id;
       const feedbackTopic = newFbTopic.trim();
       const feedbackProvider = newFbProvider;
       const feedbackAssignee = newFbAssignee;
       const feedbackResult = newFbResult.trim() || "อยู่ระหว่างปรับแก้ไข";
-      const meetingId = selectedMeeting?.id;
+      const meetingId = selectedMeeting?.id || "";
       requestEditConfirmation("Feedback", feedbackTopic, () => {
-        setFeedbackList((prev) =>
-          prev.map((feedback) =>
-            feedback.id === feedbackId
-              ? {
-                  ...feedback,
-                  topic: feedbackTopic,
-                  provider: feedbackProvider,
-                  round: meetingReference,
-                  assignee: feedbackAssignee,
-                  result: feedbackResult,
-                  meetingId,
-                }
-              : feedback,
-          ),
-        );
-        setTasks((prev) =>
-          prev.map((task) =>
-            task.feedbackId === feedbackId
-              ? {
-                  ...task,
-                  title: feedbackTopic,
-                  assignee: feedbackAssignee,
-                  source: taskSource,
-                  meetingId,
-                }
-              : task,
-          ),
-        );
-        setTimeline((prev) => [
-          { id: generateUniqueId("tl"), date: "วันนี้", event: `แก้ไข Feedback '${feedbackTopic}'` },
-          ...prev,
-        ]);
-        closeFeedbackModal();
+        void runMutation(async () => {
+          if (!backendProjectId) return;
+          await apiFetch<ApiFeedback>(`/api/projects/${encodeURIComponent(backendProjectId)}/feedback/${encodeURIComponent(feedbackId)}`, { method: "PUT", body: JSON.stringify({ topic: feedbackTopic, provider: feedbackProvider, assigneeId: assigneeId(feedbackAssignee), status: editingFeedback.status, result: feedbackResult, meetingId, dueDate: toISODate(taskDueDate), priority: "สูง" }) });
+          await refreshWorkItems(); closeFeedbackModal();
+        }, "ไม่สามารถแก้ไข Feedback ได้");
       });
       return;
     }
 
-    const feedbackId = generateUniqueId("f");
-
-    const newFb: FeedbackItem = {
-      id: feedbackId,
-      topic: newFbTopic.trim(),
-      provider: newFbProvider,
-      round: meetingReference,
-      assignee: newFbAssignee,
-      status: "กำลังแก้ไข",
-      result: newFbResult.trim() || "อยู่ระหว่างปรับแก้ไข",
-      meetingId: selectedMeeting?.id,
-    };
-
-    setFeedbackList((prev) => [newFb, ...prev]);
-
-    setTasks((prevTasks) => [
-      {
-        id: generateUniqueId("t_fb"),
-        title: newFb.topic,
-        assignee: newFb.assignee,
-        dueDate: formattedDate,
-        status: "กำลังทำ",
-        priority: "สูง",
-        source: taskSource,
-        meetingId: selectedMeeting?.id,
-        feedbackId,
-      },
-      ...prevTasks,
-    ]);
-
-    setTimeline((prev) => [
-      { id: generateUniqueId("tl"), date: "วันนี้", event: `เพิ่ม Feedback '${newFb.topic}' และมอบหมายให้ ${newFb.assignee}` },
-      ...prev,
-    ]);
-
-    setNewFbTopic("");
-    setNewFbResult("");
-    setNewFbMeetingId("");
-    setNewFbMeetingLabel("ไม่ได้มาจากการประชุม");
-    closeFeedbackModal();
+    void runMutation(async () => {
+      if (!backendProjectId) return;
+      await apiFetch<ApiFeedback>(`/api/projects/${encodeURIComponent(backendProjectId)}/feedback`, { method: "POST", body: JSON.stringify({ topic: newFbTopic.trim(), provider: newFbProvider, assigneeId: assigneeId(newFbAssignee), status: "กำลังแก้ไข", result: newFbResult.trim() || "อยู่ระหว่างปรับแก้ไข", meetingId: selectedMeeting?.id || "", dueDate: toISODate(taskDueDate), priority: "สูง" }) });
+      await refreshWorkItems(); setNewFbTopic(""); setNewFbResult(""); setNewFbMeetingId(""); setNewFbMeetingLabel("ไม่ได้มาจากการประชุม"); closeFeedbackModal();
+    }, "ไม่สามารถเพิ่ม Feedback ได้");
   };
 
   const handleDeleteFeedback = (feedback: FeedbackItem) => {
-    setFeedbackList((prev) => prev.filter((item) => item.id !== feedback.id));
-    setTasks((prev) => prev.filter((task) => task.feedbackId !== feedback.id));
-    setTimeline((prev) => [
-      { id: generateUniqueId("tl"), date: "วันนี้", event: `ลบ Feedback และงาน '${feedback.topic}'` },
-      ...prev,
-    ]);
+    void runMutation(async () => {
+      if (!backendProjectId) return;
+      await apiFetch<void>(`/api/projects/${encodeURIComponent(backendProjectId)}/feedback/${encodeURIComponent(feedback.id)}`, { method: "DELETE" });
+      await refreshWorkItems();
+    }, "ไม่สามารถลบ Feedback ได้");
   };
 
   const openNewMeetingModal = () => {
@@ -861,71 +689,35 @@ export default function ProjectPage() {
     e.preventDefault();
     if (!newMeetingTitle.trim()) return;
 
-    const formattedDate = formatThaiDate(meetingDate);
     const summary = newMeetingSummaryText.split("\n").filter((s) => s.trim());
     const agreed = newMeetingAgreedText.split("\n").filter((a) => a.trim());
 
     if (editingMeeting) {
       const meetingId = editingMeeting.id;
       const meetingTitle = newMeetingTitle.trim();
-      const updatedMeetingReference = `${newMeetingTitle.trim()} — ${formattedDate}`;
       requestEditConfirmation("บันทึกการประชุม", meetingTitle, () => {
-        setMeetings((prev) =>
-          prev.map((meeting) =>
-            meeting.id === meetingId
-              ? { ...meeting, title: meetingTitle, date: formattedDate, summary, agreed }
-              : meeting,
-          ),
-        );
-        setFeedbackList((prev) =>
-          prev.map((feedback) =>
-            feedback.meetingId === meetingId
-              ? { ...feedback, round: updatedMeetingReference }
-              : feedback,
-          ),
-        );
-        setTasks((prev) =>
-          prev.map((task) =>
-            task.meetingId === meetingId
-              ? { ...task, source: `Feedback จาก: ${updatedMeetingReference}` }
-              : task,
-          ),
-        );
-        setTimeline((prev) => [
-          { id: generateUniqueId("tl"), date: "วันนี้", event: `แก้ไขบันทึกการประชุม '${meetingTitle}'` },
-          ...prev,
-        ]);
-        closeMeetingModal();
+        void runMutation(async () => {
+          if (!backendProjectId) return;
+          await apiFetch<ApiMeeting>(`/api/projects/${encodeURIComponent(backendProjectId)}/meetings/${encodeURIComponent(meetingId)}`, { method: "PUT", body: JSON.stringify({ title: meetingTitle, date: toISODate(meetingDate), summary, agreed }) });
+          await refreshWorkItems(); closeMeetingModal();
+        }, "ไม่สามารถแก้ไขบันทึกการประชุมได้");
       });
       return;
     }
 
-    const newM: MeetingItem = {
-      id: generateUniqueId("m"),
-      title: newMeetingTitle.trim(),
-      date: formattedDate,
-      summary,
-      agreed,
-    };
-
-    setMeetings((prev) => [newM, ...prev]);
-    setTimeline((prev) => [
-      { id: generateUniqueId("tl"), date: "วันนี้", event: `บันทึกการประชุม '${newM.title}' (${formattedDate})` },
-      ...prev,
-    ]);
-
-    setNewMeetingTitle("");
-    setNewMeetingSummaryText("");
-    setNewMeetingAgreedText("");
-    closeMeetingModal();
+    void runMutation(async () => {
+      if (!backendProjectId) return;
+      await apiFetch<ApiMeeting>(`/api/projects/${encodeURIComponent(backendProjectId)}/meetings`, { method: "POST", body: JSON.stringify({ title: newMeetingTitle.trim(), date: toISODate(meetingDate), summary, agreed }) });
+      await refreshWorkItems(); setNewMeetingTitle(""); setNewMeetingSummaryText(""); setNewMeetingAgreedText(""); closeMeetingModal();
+    }, "ไม่สามารถบันทึกการประชุมได้");
   };
 
   const handleDeleteMeeting = (meeting: MeetingItem) => {
-    setMeetings((prev) => prev.filter((item) => item.id !== meeting.id));
-    setTimeline((prev) => [
-      { id: generateUniqueId("tl"), date: "วันนี้", event: `ลบบันทึกการประชุม '${meeting.title}'` },
-      ...prev,
-    ]);
+    void runMutation(async () => {
+      if (!backendProjectId) return;
+      await apiFetch<void>(`/api/projects/${encodeURIComponent(backendProjectId)}/meetings/${encodeURIComponent(meeting.id)}`, { method: "DELETE" });
+      await refreshWorkItems();
+    }, "ไม่สามารถลบบันทึกการประชุมได้");
   };
 
   const filteredTasks = useMemo(() => {
@@ -958,6 +750,7 @@ export default function ProjectPage() {
 
       {/* 2. Main Content */}
       <div className="project-content">
+        {apiError && <p role="alert" style={{ color: "#b91c1c", marginBottom: 12 }}>{apiError}</p>}
         
         {/* Cover Banner with Overlay Content */}
         <div className="project-cover-banner">
@@ -1058,21 +851,6 @@ export default function ProjectPage() {
                       เชิญเพื่อน
                     </button>
                   )}
-                  <button
-                    type="button"
-                    className="btn-navy"
-                    style={{ height: "34px" }}
-                    onClick={() => {
-                      setEditingMember(null);
-                      setNewMemberName("");
-                      setNewMemberRole("");
-                      setSelectedAvatar("/cv1.png");
-                      setIsAddMemberModalOpen(true);
-                    }}
-                  >
-                    <Plus className="w-4 h-4" />
-                    เพิ่มสมาชิก
-                  </button>
                 </div>
               </div>
               <div style={{ padding: "8px 0" }}>
@@ -1378,12 +1156,7 @@ export default function ProjectPage() {
                               selectedDate={new Date()}
                               onSelectDate={(newDate) => {
                                 if (newDate) {
-                                  const formatted = formatThaiDate(newDate);
-                                  setTasks((prev) =>
-                                    prev.map((taskItem) =>
-                                      taskItem.id === t.id ? { ...taskItem, dueDate: formatted } : taskItem
-                                    )
-                                  );
+                                  handleTaskDueDateChange(t, newDate);
                                 }
                                 setEditingTaskId(null);
                               }}
@@ -1925,67 +1698,20 @@ export default function ProjectPage() {
 
               if (editingMember) {
                 const previousName = editingMember.name;
-                const memberName = newMemberName.trim();
                 const memberRole = newMemberRole.trim();
-                const avatarUrl = selectedAvatar;
-                requestEditConfirmation("ข้อมูลสมาชิก", memberName, () => {
-                  setMembers((prev) =>
-                    prev.map((m) =>
-                      m.name === previousName
-                        ? { ...m, name: memberName, role: memberRole, avatarUrl }
-                        : m
-                    )
-                  );
-
-                  // Keep assignees in linked tasks and feedback in sync after a rename.
-                  if (memberName !== previousName) {
-                    setTasks((prev) =>
-                      prev.map((t) =>
-                        t.assignee === previousName ? { ...t, assignee: memberName } : t
-                      )
-                    );
-                    setFeedbackList((prev) =>
-                      prev.map((f) =>
-                        f.assignee === previousName ? { ...f, assignee: memberName } : f
-                      )
-                    );
-                  }
-
-                  setTimeline((prevTl) => [
-                    {
-                      id: generateUniqueId("tl"),
-                      date: "วันนี้",
-                      event: `แก้ไขข้อมูลสมาชิก '${previousName}' เป็น '${memberName}' (${memberRole})`,
-                    },
-                    ...prevTl,
-                  ]);
-
-                  setEditingMember(null);
-                  setNewMemberName("");
-                  setNewMemberRole("");
-                  setSelectedAvatar("/cv1.png");
-                  setIsAddMemberModalOpen(false);
+                requestEditConfirmation("สิทธิ์สมาชิก", previousName, () => {
+                  void runMutation(async () => {
+                    if (!backendProjectId || !editingMember.id) return;
+                    const role = memberRole === "admin" || memberRole.includes("ผู้ดูแล") ? "admin" : "member";
+                    const updated = await apiFetch<{ id: string; displayName: string; role: "owner" | "admin" | "member" }>(`/api/projects/${encodeURIComponent(backendProjectId)}/members/${encodeURIComponent(editingMember.id)}/role`, { method: "PUT", body: JSON.stringify({ role }) });
+                    setMembers((current) => current.map((member) => member.id === updated.id ? { ...member, projectRole: updated.role, role: updated.role === "admin" ? "ผู้ดูแลโปรเจกต์" : "สมาชิกทีม" } : member));
+                    await refreshActivity();
+                    setEditingMember(null); setNewMemberName(""); setNewMemberRole(""); setSelectedAvatar("/cv1.png"); setIsAddMemberModalOpen(false);
+                  }, "ไม่สามารถแก้ไขสิทธิ์สมาชิกได้");
                 });
                 return;
               } else {
-                // Add new member
-                const newMember: MemberItem = {
-                  name: newMemberName.trim(),
-                  role: newMemberRole.trim(),
-                  currentTasks: "กำลังทำ 0 งาน",
-                  avatarUrl: selectedAvatar,
-                };
-
-                setMembers((prev) => [...prev, newMember]);
-                
-                setTimeline((prevTl) => [
-                  {
-                    id: generateUniqueId("tl"),
-                    date: "วันนี้",
-                    event: `เพิ่มสมาชิกใหม่ '${newMember.name}' เข้าสู่ทีม ในตำแหน่ง ${newMember.role}`,
-                  },
-                  ...prevTl,
-                ]);
+                setIsInviteModalOpen(true);
               }
 
               setNewMemberName("");
@@ -2001,6 +1727,7 @@ export default function ProjectPage() {
                   placeholder="เช่น สมชาย ใจดี"
                   value={newMemberName}
                   onChange={(e) => setNewMemberName(e.target.value)}
+                  disabled={Boolean(editingMember)}
                   className="form-input"
                   style={{ width: "100%", padding: "10px 14px", border: "1px solid #cbd5e1", borderRadius: "10px", fontSize: "14px" }}
                 />
@@ -2081,6 +1808,7 @@ export default function ProjectPage() {
         projectId={backendProjectId}
         projectTitle={projectTitle}
         onClose={() => setIsInviteModalOpen(false)}
+        onCreated={refreshActivity}
       />
 
       <AlertDialogSmall
@@ -2176,7 +1904,7 @@ export default function ProjectPage() {
         actionBgColor="var(--theme-primary, #17211e)"
         onAction={() => {
           if (deletingMember) {
-            handleDeleteMember(deletingMember.name);
+            void handleDeleteMember(deletingMember);
             setDeletingMember(null);
           }
         }}
