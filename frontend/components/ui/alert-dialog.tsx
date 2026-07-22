@@ -105,7 +105,9 @@ export function AlertDialogContent({
       style={{
         position: "fixed",
         inset: 0,
-        zIndex: 999,
+        // Confirmation dialogs must stay above every editor modal, including
+        // the member editor which uses z-index 9999.
+        zIndex: 20000,
         display: "grid",
         placeItems: "center",
         padding: "20px",

@@ -28,6 +28,12 @@ type EnsureProjectInput struct {
 	Progress    int
 }
 
+type MemberProfileInput struct {
+	DisplayName    string
+	Responsibility string
+	AvatarURL      string
+}
+
 type ProjectRepository interface {
 	EnsureProject(ctx context.Context, userID string, input EnsureProjectInput) (pages.Project, error)
 	CreateProject(ctx context.Context, userID string, input EnsureProjectInput) (pages.Project, error)
@@ -36,6 +42,7 @@ type ProjectRepository interface {
 	DeleteProject(ctx context.Context, userID, projectID string) error
 	ListProjects(ctx context.Context, userID string) ([]pages.Project, error)
 	ListMembers(ctx context.Context, userID, projectID string) ([]pages.ProjectMember, error)
+	UpdateMemberProfile(ctx context.Context, userID, projectID, memberID string, input MemberProfileInput) (pages.ProjectMember, error)
 	UpdateMemberRole(ctx context.Context, userID, projectID, memberID, role string) (pages.ProjectMember, error)
 	RemoveMember(ctx context.Context, userID, projectID, memberID string) error
 	CreateInvitation(ctx context.Context, userID, projectID string, tokenHash []byte, expiresAt time.Time) (string, error)
@@ -120,6 +127,20 @@ func (s *ProjectService) UpdateMemberRole(ctx context.Context, userID, projectID
 		return pages.ProjectMember{}, ErrProjectInput
 	}
 	return s.repository.UpdateMemberRole(ctx, userID, projectID, memberID, role)
+}
+
+func (s *ProjectService) UpdateMemberProfile(ctx context.Context, userID, projectID, memberID string, input MemberProfileInput) (pages.ProjectMember, error) {
+	input.DisplayName = strings.TrimSpace(input.DisplayName)
+	input.Responsibility = strings.TrimSpace(input.Responsibility)
+	input.AvatarURL = strings.TrimSpace(input.AvatarURL)
+	validAvatar := input.AvatarURL == ""
+	for _, avatar := range []string{"/cv1.png", "/cv2.png", "/cv3.png", "/cv4.png", "/cv5.png"} {
+		validAvatar = validAvatar || input.AvatarURL == avatar
+	}
+	if !validID(projectID) || !validID(memberID) || utf8.RuneCountInString(input.DisplayName) < 2 || utf8.RuneCountInString(input.DisplayName) > 80 || utf8.RuneCountInString(input.Responsibility) > 100 || !validAvatar {
+		return pages.ProjectMember{}, ErrProjectInput
+	}
+	return s.repository.UpdateMemberProfile(ctx, userID, projectID, memberID, input)
 }
 func (s *ProjectService) RemoveMember(ctx context.Context, userID, projectID, memberID string) error {
 	if !validID(projectID) || !validID(memberID) {

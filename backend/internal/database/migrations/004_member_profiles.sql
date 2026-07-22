@@ -1,0 +1,6 @@
+ALTER TABLE users
+    ADD COLUMN IF NOT EXISTS avatar_url TEXT NOT NULL DEFAULT '';
+
+ALTER TABLE project_members
+    ADD COLUMN IF NOT EXISTS responsibility VARCHAR(100) NOT NULL DEFAULT '';
+

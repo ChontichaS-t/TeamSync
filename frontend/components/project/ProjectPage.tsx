@@ -335,7 +335,7 @@ export default function ProjectPage() {
     async function loadWorkspace(projectId: string) {
       const encoded = encodeURIComponent(projectId);
       const [memberResult, taskResult, meetingResult, feedbackResult, activityResult] = await Promise.all([
-        apiFetch<{ members: Array<{ id: string; displayName: string; role: "owner" | "admin" | "member" }> }>(`/api/projects/${encoded}/members`, { signal: controller.signal }),
+        apiFetch<{ members: Array<{ id: string; displayName: string; role: "owner" | "admin" | "member"; responsibility: string; avatarUrl: string }> }>(`/api/projects/${encoded}/members`, { signal: controller.signal }),
         apiFetch<{ tasks: ApiTask[] }>(`/api/projects/${encoded}/tasks`, { signal: controller.signal }),
         apiFetch<{ meetings: ApiMeeting[] }>(`/api/projects/${encoded}/meetings`, { signal: controller.signal }),
         apiFetch<{ feedback: ApiFeedback[] }>(`/api/projects/${encoded}/feedback`, { signal: controller.signal }),
@@ -349,7 +349,7 @@ export default function ProjectPage() {
         return { ...feedback, assignee: feedback.assignee?.displayName || "ยังไม่มอบหมาย", meetingId: feedback.meetingId || undefined, round: meeting ? `${meeting.title} — ${fromISODate(meeting.date)}` : "ไม่ได้มาจากการประชุม" };
       }));
       setTimeline(activityResult.activity.map((item) => ({ id: item.id, date: new Intl.DateTimeFormat("th-TH", { dateStyle: "medium" }).format(new Date(item.createdAt)), event: item.message })));
-      setMembers(memberResult.members.map((member, index) => ({ id: member.id, name: member.displayName, projectRole: member.role, role: member.role === "owner" ? "เจ้าของโปรเจกต์" : member.role === "admin" ? "ผู้ดูแลโปรเจกต์" : "สมาชิกทีม", currentTasks: `กำลังทำ ${taskResult.tasks.filter((task) => task.assignee?.id === member.id && task.status !== "เสร็จแล้ว").length} งาน`, avatarUrl: `/cv${(index % 5) + 1}.png` })));
+      setMembers(memberResult.members.map((member, index) => ({ id: member.id, name: member.displayName, projectRole: member.role, role: member.responsibility || (member.role === "owner" ? "เจ้าของโปรเจกต์" : member.role === "admin" ? "ผู้ดูแลโปรเจกต์" : "สมาชิกทีม"), currentTasks: `กำลังทำ ${taskResult.tasks.filter((task) => task.assignee?.id === member.id && task.status !== "เสร็จแล้ว").length} งาน`, avatarUrl: member.avatarUrl || `/cv${(index % 5) + 1}.png` })));
     }
 
     async function prepareProject() {
@@ -1697,17 +1697,17 @@ export default function ProjectPage() {
               if (!newMemberName.trim() || !newMemberRole.trim()) return;
 
               if (editingMember) {
-                const previousName = editingMember.name;
+                const memberName = newMemberName.trim();
                 const memberRole = newMemberRole.trim();
-                requestEditConfirmation("สิทธิ์สมาชิก", previousName, () => {
+                const avatarUrl = selectedAvatar;
+                requestEditConfirmation("ข้อมูลสมาชิก", memberName, () => {
                   void runMutation(async () => {
                     if (!backendProjectId || !editingMember.id) return;
-                    const role = memberRole === "admin" || memberRole.includes("ผู้ดูแล") ? "admin" : "member";
-                    const updated = await apiFetch<{ id: string; displayName: string; role: "owner" | "admin" | "member" }>(`/api/projects/${encodeURIComponent(backendProjectId)}/members/${encodeURIComponent(editingMember.id)}/role`, { method: "PUT", body: JSON.stringify({ role }) });
-                    setMembers((current) => current.map((member) => member.id === updated.id ? { ...member, projectRole: updated.role, role: updated.role === "admin" ? "ผู้ดูแลโปรเจกต์" : "สมาชิกทีม" } : member));
-                    await refreshActivity();
+                    const updated = await apiFetch<{ id: string; displayName: string; role: "owner" | "admin" | "member"; responsibility: string; avatarUrl: string }>(`/api/projects/${encodeURIComponent(backendProjectId)}/members/${encodeURIComponent(editingMember.id)}/profile`, { method: "PUT", body: JSON.stringify({ displayName: memberName, responsibility: memberRole, avatarUrl }) });
+                    setMembers((current) => current.map((member) => member.id === updated.id ? { ...member, name: updated.displayName, projectRole: updated.role, role: updated.responsibility, avatarUrl: updated.avatarUrl } : member));
+                    await refreshWorkItems();
                     setEditingMember(null); setNewMemberName(""); setNewMemberRole(""); setSelectedAvatar("/cv1.png"); setIsAddMemberModalOpen(false);
-                  }, "ไม่สามารถแก้ไขสิทธิ์สมาชิกได้");
+                  }, "ไม่สามารถแก้ไขข้อมูลสมาชิกได้");
                 });
                 return;
               } else {
@@ -1727,7 +1727,6 @@ export default function ProjectPage() {
                   placeholder="เช่น สมชาย ใจดี"
                   value={newMemberName}
                   onChange={(e) => setNewMemberName(e.target.value)}
-                  disabled={Boolean(editingMember)}
                   className="form-input"
                   style={{ width: "100%", padding: "10px 14px", border: "1px solid #cbd5e1", borderRadius: "10px", fontSize: "14px" }}
                 />

@@ -15,11 +15,13 @@ type Project struct {
 }
 
 type ProjectMember struct {
-	ID          string    `json:"id"`
-	DisplayName string    `json:"displayName"`
-	Email       string    `json:"email"`
-	Role        string    `json:"role"`
-	JoinedAt    time.Time `json:"joinedAt"`
+	ID             string    `json:"id"`
+	DisplayName    string    `json:"displayName"`
+	Email          string    `json:"email"`
+	Role           string    `json:"role"`
+	Responsibility string    `json:"responsibility"`
+	AvatarURL      string    `json:"avatarUrl"`
+	JoinedAt       time.Time `json:"joinedAt"`
 }
 
 type InvitationPreview struct {

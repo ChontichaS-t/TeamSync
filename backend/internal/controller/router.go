@@ -21,6 +21,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("DELETE /api/projects/{projectID}", s.handleDeleteProject)
 	mux.HandleFunc("GET /api/projects/{projectID}/members", s.handleProjectMembers)
 	mux.HandleFunc("PUT /api/projects/{projectID}/members/{memberID}/role", s.handleUpdateMemberRole)
+	mux.HandleFunc("PUT /api/projects/{projectID}/members/{memberID}/profile", s.handleUpdateMemberProfile)
 	mux.HandleFunc("DELETE /api/projects/{projectID}/members/{memberID}", s.handleRemoveMember)
 	mux.HandleFunc("POST /api/projects/{projectID}/invitations", s.handleCreateInvitation)
 	mux.HandleFunc("GET /api/projects/{projectID}/invitations", s.handleListInvitations)

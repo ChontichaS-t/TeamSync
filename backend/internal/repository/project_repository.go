@@ -182,7 +182,8 @@ func (r *ProjectRepository) ListProjects(ctx context.Context, userID string) ([]
 
 func (r *ProjectRepository) ListMembers(ctx context.Context, userID, projectID string) ([]pages.ProjectMember, error) {
 	rows, err := r.pool.Query(ctx, `
-		SELECT account.id, account.display_name, account.email, member.role, member.joined_at
+		SELECT account.id, account.display_name, account.email, member.role,
+		       member.responsibility, account.avatar_url, member.joined_at
 		FROM project_members viewer
 		JOIN project_members member ON member.project_id = viewer.project_id
 		JOIN users account ON account.id = member.user_id
@@ -197,7 +198,7 @@ func (r *ProjectRepository) ListMembers(ctx context.Context, userID, projectID s
 	members := make([]pages.ProjectMember, 0)
 	for rows.Next() {
 		var member pages.ProjectMember
-		if err := rows.Scan(&member.ID, &member.DisplayName, &member.Email, &member.Role, &member.JoinedAt); err != nil {
+		if err := rows.Scan(&member.ID, &member.DisplayName, &member.Email, &member.Role, &member.Responsibility, &member.AvatarURL, &member.JoinedAt); err != nil {
 			return nil, fmt.Errorf("scan project member: %w", err)
 		}
 		members = append(members, member)
@@ -224,8 +225,8 @@ func (r *ProjectRepository) UpdateMemberRole(ctx context.Context, userID, projec
 		WHERE target.project_id=$1 AND target.user_id=$3 AND target.role<>'owner'
 		  AND viewer.project_id=target.project_id AND viewer.user_id=$2 AND viewer.role='owner'
 		  AND account.id=target.user_id
-		RETURNING account.id,account.display_name,account.email,target.role,target.joined_at
-	`, projectID, userID, memberID, role).Scan(&member.ID, &member.DisplayName, &member.Email, &member.Role, &member.JoinedAt)
+		RETURNING account.id,account.display_name,account.email,target.role,target.responsibility,account.avatar_url,target.joined_at
+	`, projectID, userID, memberID, role).Scan(&member.ID, &member.DisplayName, &member.Email, &member.Role, &member.Responsibility, &member.AvatarURL, &member.JoinedAt)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return pages.ProjectMember{}, service.ErrProjectForbidden
 	}
@@ -233,6 +234,43 @@ func (r *ProjectRepository) UpdateMemberRole(ctx context.Context, userID, projec
 		return pages.ProjectMember{}, err
 	}
 	if _, err = tx.Exec(ctx, `INSERT INTO project_activity_logs(project_id,actor_id,event_type,message) VALUES($1,$2,'member.role_updated',$3)`, projectID, userID, fmt.Sprintf("เปลี่ยนสิทธิ์ %s เป็น %s", member.DisplayName, role)); err != nil {
+		return pages.ProjectMember{}, err
+	}
+	if err = tx.Commit(ctx); err != nil {
+		return pages.ProjectMember{}, err
+	}
+	return member, nil
+}
+
+func (r *ProjectRepository) UpdateMemberProfile(ctx context.Context, userID, projectID, memberID string, input service.MemberProfileInput) (pages.ProjectMember, error) {
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return pages.ProjectMember{}, err
+	}
+	defer tx.Rollback(ctx)
+
+	var member pages.ProjectMember
+	err = tx.QueryRow(ctx, `
+		UPDATE project_members target SET responsibility=$4
+		FROM project_members viewer, users account
+		WHERE target.project_id=$1 AND target.user_id=$3
+		  AND viewer.project_id=target.project_id AND viewer.user_id=$2
+		  AND (viewer.user_id=target.user_id OR viewer.role IN ('owner','admin'))
+		  AND account.id=target.user_id
+		RETURNING account.id,account.email,target.role,target.responsibility,target.joined_at
+	`, projectID, userID, memberID, input.Responsibility).Scan(&member.ID, &member.Email, &member.Role, &member.Responsibility, &member.JoinedAt)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return pages.ProjectMember{}, service.ErrProjectForbidden
+	}
+	if err != nil {
+		return pages.ProjectMember{}, err
+	}
+	if _, err = tx.Exec(ctx, `UPDATE users SET display_name=$2,avatar_url=$3 WHERE id=$1`, memberID, input.DisplayName, input.AvatarURL); err != nil {
+		return pages.ProjectMember{}, err
+	}
+	member.DisplayName = input.DisplayName
+	member.AvatarURL = input.AvatarURL
+	if err = logActivity(ctx, tx, projectID, userID, "member.profile_updated", fmt.Sprintf("แก้ไขข้อมูลสมาชิก '%s'", input.DisplayName)); err != nil {
 		return pages.ProjectMember{}, err
 	}
 	if err = tx.Commit(ctx); err != nil {

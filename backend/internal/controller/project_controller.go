@@ -32,6 +32,11 @@ type invitationsResponse struct {
 type memberRoleRequest struct {
 	Role string `json:"role"`
 }
+type memberProfileRequest struct {
+	DisplayName    string `json:"displayName"`
+	Responsibility string `json:"responsibility"`
+	AvatarURL      string `json:"avatarUrl"`
+}
 
 func writeProjectError(w http.ResponseWriter, operation string, err error) {
 	switch {
@@ -191,6 +196,25 @@ func (s *Server) handleUpdateMemberRole(w http.ResponseWriter, r *http.Request) 
 	member, err := s.projects.UpdateMemberRole(r.Context(), user.ID, r.PathValue("projectID"), r.PathValue("memberID"), input.Role)
 	if err != nil {
 		writeProjectError(w, "update member role", err)
+		return
+	}
+	writeJSON(w, http.StatusOK, member)
+}
+func (s *Server) handleUpdateMemberProfile(w http.ResponseWriter, r *http.Request) {
+	if !s.requireTrustedOrigin(w, r) {
+		return
+	}
+	user, ok := s.authenticatedUser(w, r)
+	if !ok {
+		return
+	}
+	var input memberProfileRequest
+	if !decodeJSON(w, r, &input) {
+		return
+	}
+	member, err := s.projects.UpdateMemberProfile(r.Context(), user.ID, r.PathValue("projectID"), r.PathValue("memberID"), service.MemberProfileInput{DisplayName: input.DisplayName, Responsibility: input.Responsibility, AvatarURL: input.AvatarURL})
+	if err != nil {
+		writeProjectError(w, "update member profile", err)
 		return
 	}
 	writeJSON(w, http.StatusOK, member)

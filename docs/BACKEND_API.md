@@ -31,6 +31,7 @@ Backend ใช้ Go `net/http`, PostgreSQL และ session cookie แบบ H
 | PUT | `/api/projects/{projectId}` | Owner or Admin |
 | DELETE | `/api/projects/{projectId}` | Owner |
 | GET | `/api/projects/{projectId}/members` | Project member |
+| PUT | `/api/projects/{projectId}/members/{userId}/profile` | The member themself, Owner, or Admin; edits display name, responsibility, and avatar |
 | PUT | `/api/projects/{projectId}/members/{userId}/role` | Owner; body `{ "role": "admin" }` or `member` |
 | DELETE | `/api/projects/{projectId}/members/{userId}` | Owner/Admin according to role, or the member themself |
 
