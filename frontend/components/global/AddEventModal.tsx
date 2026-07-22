@@ -16,6 +16,7 @@ export type AddEventModalProps = {
   onClose: () => void;
   onSave: (eventData: NewEventData) => void;
   defaultDateKey?: string;
+  initialData?: NewEventData | null;
 };
 
 function parseDateKey(key: string): Date {
@@ -46,10 +47,10 @@ function MiniCalendarPicker({
   const month = pickerMonth.getMonth();
 
   const monthNames = [
-    "January", "February", "March", "April", "May", "June",
-    "July", "August", "September", "October", "November", "December"
+    "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน",
+    "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"
   ];
-  const weekdays = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
+  const weekdays = ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"];
 
   const handlePrev = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -239,6 +240,7 @@ export function AddEventModal({
   onClose,
   onSave,
   defaultDateKey,
+  initialData,
 }: AddEventModalProps) {
   const [title, setTitle] = useState<string>("");
   const [dateKey, setDateKey] = useState<string>("");
@@ -250,12 +252,23 @@ export function AddEventModal({
   const datePickerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (defaultDateKey) {
-      setDateKey(defaultDateKey);
+    if (!isOpen) return;
+
+    if (initialData) {
+      setTitle(initialData.title);
+      setDateKey(initialData.dateKey);
+      setTime(initialData.time);
+      setLocation(initialData.location);
+      setTone(initialData.tone);
     } else {
-      setDateKey(formatDateKey(new Date()));
+      setTitle("");
+      setDateKey(defaultDateKey || formatDateKey(new Date()));
+      setTime("10:00");
+      setLocation("Google Meet");
+      setTone("blue");
     }
-  }, [defaultDateKey, isOpen]);
+    setShowDatePicker(false);
+  }, [defaultDateKey, initialData, isOpen]);
 
   // Click outside to close MiniCalendarPicker
   useEffect(() => {
@@ -311,12 +324,12 @@ export function AddEventModal({
         aria-modal="true"
       >
         <div className="calendar-modal-header">
-          <h3>Add New Event</h3>
+          <h3>{initialData ? "แก้ไขกิจกรรม" : "เพิ่มกิจกรรมใหม่"}</h3>
           <button
             className="calendar-modal-close"
             type="button"
             onClick={onClose}
-            aria-label="Close modal"
+            aria-label="ปิดหน้าต่าง"
           >
             <X aria-hidden="true" />
           </button>
@@ -324,11 +337,11 @@ export function AddEventModal({
 
         <form onSubmit={handleSubmit} className="calendar-modal-form">
           <div className="form-group">
-            <label htmlFor="modal-evt-title">Event title</label>
+            <label htmlFor="modal-evt-title">ชื่อกิจกรรม</label>
             <input
               id="modal-evt-title"
               type="text"
-              placeholder="e.g. Design Sync"
+              placeholder="เช่น ประชุมทีมออกแบบ"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               onFocus={() => setShowDatePicker(false)}
@@ -339,7 +352,7 @@ export function AddEventModal({
 
           <div className="form-row">
             <div className="form-group" style={{ position: "relative" }} ref={datePickerRef}>
-              <label htmlFor="modal-evt-date">Date</label>
+              <label htmlFor="modal-evt-date">วันที่</label>
               <button
                 id="modal-evt-date"
                 type="button"
@@ -360,7 +373,7 @@ export function AddEventModal({
                   textAlign: "left",
                 }}
               >
-                <span>{dateKey || "Select Date"}</span>
+                <span>{dateKey || "เลือกวันที่"}</span>
                 <ChevronDown style={{ width: 16, height: 16, color: "#94a3b8" }} />
               </button>
 
@@ -384,7 +397,7 @@ export function AddEventModal({
             </div>
 
             <div className="form-group">
-              <label htmlFor="modal-evt-time">Time</label>
+              <label htmlFor="modal-evt-time">เวลา</label>
               <input
                 id="modal-evt-time"
                 type="time"
@@ -396,11 +409,11 @@ export function AddEventModal({
           </div>
 
           <div className="form-group">
-            <label htmlFor="modal-evt-location">Location / Link</label>
+            <label htmlFor="modal-evt-location">สถานที่ / ลิงก์</label>
             <input
               id="modal-evt-location"
               type="text"
-              placeholder="e.g. Meeting Room A or Google Meet"
+              placeholder="เช่น ห้องประชุม A หรือ Google Meet"
               value={location}
               onChange={(e) => setLocation(e.target.value)}
               onFocus={() => setShowDatePicker(false)}
@@ -408,7 +421,7 @@ export function AddEventModal({
           </div>
 
           <div className="form-group">
-            <label>Category tone</label>
+            <label>ประเภทกิจกรรม</label>
             <div className="tone-selector">
               {(["blue", "green", "orange", "purple"] as const).map((t) => (
                 <button
@@ -420,10 +433,10 @@ export function AddEventModal({
                     setShowDatePicker(false);
                   }}
                 >
-                  {t === "blue" && "Sync"}
-                  {t === "green" && "Review"}
-                  {t === "orange" && "Deadline"}
-                  {t === "purple" && "Task"}
+                  {t === "blue" && "ประชุม"}
+                  {t === "green" && "ตรวจงาน"}
+                  {t === "orange" && "กำหนดส่ง"}
+                  {t === "purple" && "งาน"}
                 </button>
               ))}
             </div>
@@ -435,10 +448,10 @@ export function AddEventModal({
               className="modal-cancel-btn"
               onClick={onClose}
             >
-              Cancel
+              ยกเลิก
             </button>
             <button type="submit" className="modal-submit-btn">
-              Save Event
+              {initialData ? "บันทึกการแก้ไข" : "บันทึกกิจกรรม"}
             </button>
           </div>
         </form>

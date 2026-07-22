@@ -8,6 +8,8 @@ import {
   Grid,
   List,
   MapPin,
+  MoreHorizontal,
+  Pencil,
   Plus,
   Trash2,
   X,
@@ -18,6 +20,7 @@ import { useSearchParams } from "next/navigation";
 import { useMemo, useState, useEffect } from "react";
 import { AlertDialogSmall } from "@/components/global/AlertDialogSmall";
 import { AddEventModal } from "@/components/global/AddEventModal";
+import { UserProfileMenu } from "@/components/global/UserProfileMenu";
 
 export type CalendarEvent = {
   id: string;
@@ -127,6 +130,15 @@ export default function CalendarPage() {
 
   // Add Event Modal State
   const [isAddModalOpen, setIsAddModalOpen] = useState<boolean>(false);
+  const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
+  const [activeMenuEventId, setActiveMenuEventId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!activeMenuEventId) return;
+    const closeMenu = () => setActiveMenuEventId(null);
+    window.addEventListener("click", closeMenu);
+    return () => window.removeEventListener("click", closeMenu);
+  }, [activeMenuEventId]);
 
   const todayKey = toDateKey(new Date());
 
@@ -236,6 +248,21 @@ export default function CalendarPage() {
     setEvents((prev) => prev.filter((e) => e.id !== id));
   };
 
+  const openNewEventModal = () => {
+    setEditingEvent(null);
+    setIsAddModalOpen(true);
+  };
+
+  const openEditEventModal = (event: CalendarEvent) => {
+    setEditingEvent(event);
+    setIsAddModalOpen(true);
+  };
+
+  const closeEventModal = () => {
+    setIsAddModalOpen(false);
+    setEditingEvent(null);
+  };
+
   const selectedDateLabel = new Intl.DateTimeFormat("en-US", {
     weekday: "long",
     day: "numeric",
@@ -253,7 +280,6 @@ export default function CalendarPage() {
         <div className="project-navbar-menu">
           <Link href="/home">Home</Link>
           <Link href={`/project${coverImage ? `?cover=${encodeURIComponent(coverImage)}` : ""}`}>Project</Link>
-          <Link href={`/project${coverImage ? `?cover=${encodeURIComponent(coverImage)}` : ""}#works`}>Works</Link>
           <Link
             className="project-navbar-active"
             href={`/calendar?cover=${encodeURIComponent(coverImage)}&title=${encodeURIComponent(projectTitle)}`}
@@ -261,6 +287,7 @@ export default function CalendarPage() {
             Calendar
           </Link>
         </div>
+        <UserProfileMenu />
       </nav>
 
       <main className="calendar-page">
@@ -273,10 +300,10 @@ export default function CalendarPage() {
           <button
             className="calendar-add-button"
             type="button"
-            onClick={() => setIsAddModalOpen(true)}
+            onClick={openNewEventModal}
           >
             <Plus aria-hidden="true" />
-            <span>New event</span>
+            <span>เพิ่มกิจกรรมใหม่</span>
           </button>
         </header>
 
@@ -467,6 +494,49 @@ export default function CalendarPage() {
                             setSelectedDate(new Date(y, m - 1, d));
                           }}
                         >
+                          <div className="event-actions-menu-wrap list-event-actions">
+                            <button
+                              className="event-actions-trigger"
+                              type="button"
+                              aria-label={`Manage ${evt.title}`}
+                              aria-haspopup="menu"
+                              aria-expanded={activeMenuEventId === evt.id}
+                              onClick={(clickEvent) => {
+                                clickEvent.stopPropagation();
+                                setActiveMenuEventId((activeId) => activeId === evt.id ? null : evt.id);
+                              }}
+                            >
+                              <MoreHorizontal aria-hidden="true" />
+                            </button>
+
+                            {activeMenuEventId === evt.id && (
+                              <div className="event-actions-dropdown" role="menu" onClick={(clickEvent) => clickEvent.stopPropagation()}>
+                                <button
+                                  type="button"
+                                  role="menuitem"
+                                  onClick={() => {
+                                    openEditEventModal(evt);
+                                    setActiveMenuEventId(null);
+                                  }}
+                                >
+                                  <Pencil aria-hidden="true" />
+                                  <span>Edit</span>
+                                </button>
+                                <button
+                                  className="danger"
+                                  type="button"
+                                  role="menuitem"
+                                  onClick={() => {
+                                    setDeleteEventId(evt.id);
+                                    setActiveMenuEventId(null);
+                                  }}
+                                >
+                                  <Trash2 aria-hidden="true" />
+                                  <span>Delete</span>
+                                </button>
+                              </div>
+                            )}
+                          </div>
                           <div className="calendar-event-datekey">{evt.dateKey}</div>
                           <div className="calendar-event-time">
                             <Clock3 aria-hidden="true" />
@@ -510,14 +580,49 @@ export default function CalendarPage() {
                       <Clock3 aria-hidden="true" />
                       {event.time}
                     </div>
-                    <button
-                      className="delete-evt-btn"
-                      type="button"
-                      onClick={() => setDeleteEventId(event.id)}
-                      title="Delete event"
-                    >
-                      <Trash2 aria-hidden="true" />
-                    </button>
+                    <div className="event-actions-menu-wrap">
+                      <button
+                        className="event-actions-trigger"
+                        type="button"
+                        aria-label={`Manage ${event.title}`}
+                        aria-haspopup="menu"
+                        aria-expanded={activeMenuEventId === event.id}
+                        onClick={(clickEvent) => {
+                          clickEvent.stopPropagation();
+                          setActiveMenuEventId((activeId) => activeId === event.id ? null : event.id);
+                        }}
+                      >
+                        <MoreHorizontal aria-hidden="true" />
+                      </button>
+
+                      {activeMenuEventId === event.id && (
+                        <div className="event-actions-dropdown" role="menu" onClick={(clickEvent) => clickEvent.stopPropagation()}>
+                          <button
+                            type="button"
+                            role="menuitem"
+                            onClick={() => {
+                              openEditEventModal(event);
+                              setActiveMenuEventId(null);
+                            }}
+                          >
+                            <Pencil aria-hidden="true" />
+                            <span>Edit</span>
+                          </button>
+                          <button
+                            className="danger"
+                            type="button"
+                            role="menuitem"
+                            onClick={() => {
+                              setDeleteEventId(event.id);
+                              setActiveMenuEventId(null);
+                            }}
+                          >
+                            <Trash2 aria-hidden="true" />
+                            <span>Delete</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
                   <h3>{event.title}</h3>
                   <p>
@@ -535,7 +640,7 @@ export default function CalendarPage() {
                   <button
                     className="add-inline-btn"
                     type="button"
-                    onClick={() => setIsAddModalOpen(true)}
+                    onClick={openNewEventModal}
                   >
                     <Plus aria-hidden="true" /> Add Event
                   </button>
@@ -549,9 +654,16 @@ export default function CalendarPage() {
       {/* Reusable Add Event Modal */}
       <AddEventModal
         isOpen={isAddModalOpen}
-        onClose={() => setIsAddModalOpen(false)}
+        onClose={closeEventModal}
         defaultDateKey={selectedDateKey}
+        initialData={editingEvent}
         onSave={(data) => {
+          if (editingEvent) {
+            setEvents((prev) =>
+              prev.map((event) => event.id === editingEvent.id ? { ...event, ...data } : event),
+            );
+            return;
+          }
           const newEvt: CalendarEvent = {
             id: `evt-${Date.now()}`,
             dateKey: data.dateKey,
@@ -571,10 +683,10 @@ export default function CalendarPage() {
           if (!open) setDeleteEventId(null);
         }}
         trigger={null}
-        title="Delete this event?"
-        description="Are you sure you want to delete this event from your calendar? This action cannot be undone."
-        cancelText="Cancel"
-        actionText="Delete Event"
+        title="ลบกิจกรรมนี้?"
+        description="คุณแน่ใจหรือไม่ว่าต้องการลบกิจกรรมนี้ออกจากปฏิทิน? เมื่อลบแล้วจะไม่สามารถกู้คืนได้"
+        cancelText="ยกเลิก"
+        actionText="ลบกิจกรรม"
         onAction={() => {
           if (deleteEventId) {
             handleDeleteEvent(deleteEventId);

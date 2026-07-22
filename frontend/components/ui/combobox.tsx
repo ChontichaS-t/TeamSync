@@ -11,6 +11,9 @@ export interface CustomComboboxProps {
   placeholder?: string;
   className?: string;
   allowsEmptyCollection?: boolean;
+  showAllOptionsOnOpen?: boolean;
+  showCheckmark?: boolean;
+  optionSecondarySeparator?: string;
 }
 
 export function Combobox({
@@ -20,9 +23,13 @@ export function Combobox({
   onSelect,
   placeholder = "เลือกรายการ...",
   className,
+  showAllOptionsOnOpen = false,
+  showCheckmark = true,
+  optionSecondarySeparator,
 }: CustomComboboxProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState(value);
+  const [isFiltering, setIsFiltering] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -39,14 +46,17 @@ export function Combobox({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const filteredOptions = options.filter((opt) =>
-    opt.toLowerCase().includes((query || "").toLowerCase())
-  );
+  const filteredOptions = showAllOptionsOnOpen && isOpen && !isFiltering
+    ? options
+    : options.filter((opt) =>
+        opt.toLowerCase().includes((query || "").toLowerCase())
+      );
 
   const handleSelectOption = (option: string) => {
     setQuery(option);
     if (onChange) onChange(option);
     if (onSelect) onSelect(option);
+    setIsFiltering(false);
     setIsOpen(false);
   };
 
@@ -63,7 +73,10 @@ export function Combobox({
     >
       {/* Trigger Input Box - Matching form-input styling 100% */}
       <div
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => {
+          if (!isOpen) setIsFiltering(false);
+          setIsOpen(!isOpen);
+        }}
         style={{
           display: "flex",
           flexDirection: "row",
@@ -85,6 +98,7 @@ export function Combobox({
           type="text"
           value={query}
           onChange={(e) => {
+            setIsFiltering(true);
             setQuery(e.target.value);
             if (onChange) onChange(e.target.value);
             setIsOpen(true);
@@ -150,6 +164,11 @@ export function Combobox({
           ) : (
             filteredOptions.map((opt) => {
               const isSelected = query === opt;
+              const optionParts = optionSecondarySeparator
+                ? opt.split(optionSecondarySeparator)
+                : [opt];
+              const primaryText = optionParts[0];
+              const secondaryText = optionParts.slice(1).join(optionSecondarySeparator);
               return (
                 <div
                   key={opt}
@@ -179,8 +198,22 @@ export function Combobox({
                     }
                   }}
                 >
-                  <span style={{ whiteSpace: "nowrap" }}>{opt}</span>
-                  {isSelected && (
+                  <span
+                    style={{
+                      minWidth: 0,
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "2px",
+                    }}
+                  >
+                    <span style={{ whiteSpace: "nowrap" }}>{primaryText}</span>
+                    {secondaryText && (
+                      <span style={{ color: "#64748b", fontSize: "11px", fontWeight: 500 }}>
+                        {secondaryText}
+                      </span>
+                    )}
+                  </span>
+                  {showCheckmark && isSelected && (
                     <Check
                       style={{
                         width: "14px",

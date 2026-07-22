@@ -186,7 +186,7 @@ function CalendarDayButton({
         !modifiers.range_middle
       }
       className={cn(
-        "w-9 h-9 p-0 text-xs font-medium rounded-lg hover:bg-gray-100 flex items-center justify-center transition-all cursor-pointer text-gray-800 data-[selected-single=true]:bg-[#17211e] data-[selected-single=true]:text-white data-[selected-single=true]:font-bold shadow-none",
+        "w-9 h-9 p-0 text-xs font-medium rounded-lg hover:bg-gray-100 flex items-center justify-center transition-all cursor-pointer text-gray-800 data-[selected-single=true]:bg-[var(--theme-primary,#17211e)] data-[selected-single=true]:text-white data-[selected-single=true]:font-bold shadow-none",
         defaultClassNames.day,
         className
       )}

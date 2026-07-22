@@ -8,7 +8,7 @@ import {
   Mail,
 } from "lucide-react";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
 
 type APIError = {
@@ -17,6 +17,9 @@ type APIError = {
 
 export default function LoginPage() {
 	const router = useRouter();
+  const searchParams = useSearchParams();
+  const requestedNext = searchParams.get("next") || "/home";
+  const nextPath = requestedNext.startsWith("/") && !requestedNext.startsWith("//") ? requestedNext : "/home";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -32,11 +35,11 @@ export default function LoginPage() {
       signal: controller.signal,
     }).then((response) => {
       if (response.ok) {
-        router.replace("/home");
+        router.replace(nextPath);
       }
     }).catch(() => undefined);
     return () => controller.abort();
-  }, [router]);
+  }, [nextPath, router]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -55,7 +58,7 @@ export default function LoginPage() {
         setError(result.error ?? "Unable to sign in. Please try again.");
         return;
       }
-      router.replace("/home");
+      router.replace(nextPath);
       router.refresh();
     } catch {
       setError("Cannot connect to the server. Please try again.");
@@ -70,7 +73,7 @@ export default function LoginPage() {
         <a className="brand" href="/home" aria-label="TeamSync home">
           <span>TeamSync</span>
         </a>
-        <a className="auth-navbar-cta" href="/register">Sign up</a>
+        <a className="auth-navbar-cta" href={`/register?next=${encodeURIComponent(nextPath)}`}>Sign up</a>
       </nav>
       <div className="login-scenery" aria-hidden="true">
         <video

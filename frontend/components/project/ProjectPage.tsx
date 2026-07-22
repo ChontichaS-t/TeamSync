@@ -4,10 +4,12 @@ import React, { useState, useMemo, useRef, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
-import { Plus, Search, X, Calendar as CalendarIcon, ChevronDown, MoreHorizontal, Trash2, Edit } from "lucide-react";
+import { Plus, Search, X, Calendar as CalendarIcon, ChevronDown, MoreHorizontal, Trash2, Edit, UserPlus } from "lucide-react";
 import { CalendarDemo } from "@/components/global/CalendarDemo";
 import { Combobox } from "@/components/ui/combobox";
 import { AlertDialogSmall } from "@/components/global/AlertDialogSmall";
+import { UserProfileMenu } from "@/components/global/UserProfileMenu";
+import { InviteProjectModal } from "@/components/project/InviteProjectModal";
 
 export type TaskStatus = "ยังไม่เริ่ม" | "กำลังทำ" | "รอตรวจ" | "เสร็จแล้ว";
 
@@ -19,6 +21,8 @@ export interface TaskItem {
   status: TaskStatus;
   priority: "ต่ำ" | "ปานกลาง" | "สูง";
   source: string; // ที่มาของงาน (e.g. Feedback จากการประชุมครั้งที่ 2)
+  meetingId?: string;
+  feedbackId?: string;
 }
 
 export interface MemberItem {
@@ -28,15 +32,17 @@ export interface MemberItem {
   avatarUrl?: string;
 }
 
+type FeedbackStatus = "กำลังแก้ไข" | "แก้ไขแล้ว";
+
 export interface FeedbackItem {
   id: string;
   topic: string;
   provider: string;
   round: string;
-  decision: string;
   assignee: string;
-  status: "กำลังแก้ไข" | "แก้ไขแล้ว";
+  status: FeedbackStatus;
   result: string;
+  meetingId?: string;
 }
 
 export interface MeetingItem {
@@ -52,6 +58,11 @@ export interface TimelineItem {
   date: string;
   event: string;
 }
+
+type EditConfirmation = {
+  entityLabel: string;
+  itemName: string;
+};
 
 // Custom Task Status Dropdown Component
 function TaskStatusCombobox({
@@ -86,7 +97,14 @@ function TaskStatusCombobox({
   };
 
   return (
-    <div ref={dropdownRef} style={{ position: "relative", display: "inline-block" }}>
+    <div
+      ref={dropdownRef}
+      style={{
+        position: "relative",
+        display: "inline-block",
+        zIndex: isOpen ? 1000 : "auto",
+      }}
+    >
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
@@ -170,7 +188,9 @@ const initialTasks: TaskItem[] = [
     dueDate: "25 กรกฎาคม 2026",
     status: "กำลังทำ",
     priority: "สูง",
-    source: "Feedback จากการประชุมครั้งที่ 2",
+    source: "Feedback จาก: ประชุมครั้งที่ 2 — 22 กรกฎาคม 2026",
+    meetingId: "m2",
+    feedbackId: "f1",
   },
   {
     id: "t2",
@@ -179,7 +199,9 @@ const initialTasks: TaskItem[] = [
     dueDate: "28 กรกฎาคม 2026",
     status: "กำลังทำ",
     priority: "สูง",
-    source: "การประชุมครั้งที่ 2",
+    source: "Feedback จาก: ประชุมครั้งที่ 2 — 22 กรกฎาคม 2026",
+    meetingId: "m2",
+    feedbackId: "f2",
   },
   {
     id: "t3",
@@ -210,45 +232,47 @@ const initialTasks: TaskItem[] = [
   },
   {
     id: "t6",
-    title: "ทำ Mockup Tournament Flow",
-    assignee: "Jane",
+    title: "แก้ไขปุ่ม Export PDF บนมือถือ",
+    assignee: "Beam",
     dueDate: "18 กรกฎาคม 2026",
     status: "เสร็จแล้ว",
-    priority: "ปานกลาง",
-    source: "Requirements",
+    priority: "สูง",
+    source: "Feedback จาก: ประชุม Kickoff ครั้งที่ 1 — 15 กรกฎาคม 2026",
+    meetingId: "m1",
+    feedbackId: "f3",
   },
 ];
 
 const initialFeedback: FeedbackItem[] = [
   {
     id: "f1",
-    topic: "หน้า Monitor ดูข้อมูลยาก",
+    topic: "ออกแบบหน้า Monitor ใหม่",
     provider: "อาจารย์ที่ปรึกษา",
-    round: "Review ครั้งที่ 2",
-    decision: "รับข้อเสนอ",
+    round: "ประชุมครั้งที่ 2 — 22 กรกฎาคม 2026",
     assignee: "Chonticha",
     status: "กำลังแก้ไข",
     result: "ปรับเป็น Table View และเพิ่ม Filter",
+    meetingId: "m2",
   },
   {
     id: "f2",
-    topic: "Backend ยังไม่รองรับ Walkover",
+    topic: "พัฒนา Backend รองรับ Walkover",
     provider: "ทีมงาน (Jane)",
-    round: "Review ครั้งที่ 2",
-    decision: "รับข้อเสนอ",
+    round: "ประชุมครั้งที่ 2 — 22 กรกฎาคม 2026",
     assignee: "Beam",
     status: "กำลังแก้ไข",
     result: "เพิ่ม API endpoint walkover",
+    meetingId: "m2",
   },
   {
     id: "f3",
-    topic: "ปุ่ม Export PDF ไม่ตอบสนองบนมือถือ",
+    topic: "แก้ไขปุ่ม Export PDF บนมือถือ",
     provider: "อาจารย์ที่ปรึกษา",
-    round: "Review ครั้งที่ 1",
-    decision: "รับข้อเสนอ",
+    round: "ประชุม Kickoff ครั้งที่ 1 — 15 กรกฎาคม 2026",
     assignee: "Beam",
     status: "แก้ไขแล้ว",
     result: "แก้ไข Event handler รองรับ Touch Devices",
+    meetingId: "m1",
   },
 ];
 
@@ -300,6 +324,19 @@ function formatThaiDate(date?: Date): string {
   return `${day} ${month} ${year}`;
 }
 
+function parseThaiDate(value: string): Date | undefined {
+  const monthNames = [
+    "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน",
+    "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"
+  ];
+  const [dayValue, monthValue, yearValue] = value.trim().split(/\s+/);
+  const day = Number(dayValue);
+  const month = monthNames.indexOf(monthValue);
+  const year = Number(yearValue);
+  if (!Number.isInteger(day) || month < 0 || !Number.isInteger(year)) return undefined;
+  return new Date(year, month, day);
+}
+
 const THEME_MAP = {
   "/new/newsea.jpg": { primary: "#1a77a6", hover: "#13587b", shadow: "rgba(26, 119, 166, 0.2)" },
   "/new/newtrain.jpg": { primary: "#351e7a", hover: "#2d0c90ff", shadow: "rgba(53, 30, 122, 0.2)" },
@@ -314,6 +351,8 @@ const THEME_MAP = {
 export default function ProjectPage() {
   const searchParams = useSearchParams();
   const coverImage = searchParams.get("cover") || "/new/newsea.jpg";
+  const requestedProjectId = searchParams.get("projectId");
+  const projectTitle = searchParams.get("title") || "Badminton Tournament System";
 
   const activeTheme = (THEME_MAP as Record<string, { primary: string; hover: string; shadow: string }>)[coverImage] || {
     primary: "#17211e",
@@ -327,12 +366,15 @@ export default function ProjectPage() {
     "--theme-primary-shadow": activeTheme.shadow,
   } as React.CSSProperties;
 
-  const [activeTab, setActiveTab] = useState<"all" | "tasks" | "feedback" | "meetings" | "members_timeline">("all");
+  const [activeTab, setActiveTab] = useState<"all" | "tasks" | "feedback" | "meetings" | "members" | "timeline">("all");
   const [tasks, setTasks] = useState<TaskItem[]>(initialTasks);
   const [feedbackList, setFeedbackList] = useState<FeedbackItem[]>(initialFeedback);
   const [meetings, setMeetings] = useState<MeetingItem[]>(initialMeetings);
   const [timeline, setTimeline] = useState<TimelineItem[]>(initialTimeline);
   const [members, setMembers] = useState<MemberItem[]>(initialMembers);
+  const [backendProjectId, setBackendProjectId] = useState<string | null>(requestedProjectId);
+  const [canInviteMembers, setCanInviteMembers] = useState(!requestedProjectId);
+  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
 
   const [taskFilterStatus, setTaskFilterStatus] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
@@ -358,10 +400,123 @@ export default function ProjectPage() {
   // Task Date Editing Popup
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
 
+  // Task actions state
+  const [activeMenuTaskId, setActiveMenuTaskId] = useState<string | null>(null);
+  const [editingTask, setEditingTask] = useState<TaskItem | null>(null);
+  const [deletingTask, setDeletingTask] = useState<TaskItem | null>(null);
+
+  // Meeting actions state
+  const [activeMenuMeetingId, setActiveMenuMeetingId] = useState<string | null>(null);
+  const [editingMeeting, setEditingMeeting] = useState<MeetingItem | null>(null);
+  const [deletingMeeting, setDeletingMeeting] = useState<MeetingItem | null>(null);
+
+  // Feedback actions state
+  const [activeMenuFeedbackId, setActiveMenuFeedbackId] = useState<string | null>(null);
+  const [editingFeedback, setEditingFeedback] = useState<FeedbackItem | null>(null);
+  const [deletingFeedback, setDeletingFeedback] = useState<FeedbackItem | null>(null);
+
   // Member actions state
   const [activeMenuMemberName, setActiveMenuMemberName] = useState<string | null>(null);
   const [deletingMember, setDeletingMember] = useState<MemberItem | null>(null);
   const [editingMember, setEditingMember] = useState<MemberItem | null>(null);
+
+  // Keep every "บันทึกการแก้ไข" action behind the same confirmation step.
+  const [editConfirmation, setEditConfirmation] = useState<EditConfirmation | null>(null);
+  const pendingEditActionRef = useRef<(() => void) | null>(null);
+
+  const requestEditConfirmation = (
+    entityLabel: string,
+    itemName: string,
+    action: () => void,
+  ) => {
+    pendingEditActionRef.current = action;
+    setEditConfirmation({ entityLabel, itemName });
+  };
+
+  const clearEditConfirmation = () => {
+    pendingEditActionRef.current = null;
+    setEditConfirmation(null);
+  };
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    async function loadProjectMembers(projectId: string) {
+      const response = await fetch(`/api/projects/${encodeURIComponent(projectId)}/members`, {
+        credentials: "include",
+        cache: "no-store",
+        signal: controller.signal,
+      });
+      if (!response.ok) return;
+      const result = (await response.json()) as {
+        members: Array<{ displayName: string; role: "owner" | "admin" | "member" }>;
+      };
+      setMembers((current) => {
+        const next = [...current];
+        for (const member of result.members) {
+          if (next.some((item) => item.name.toLowerCase() === member.displayName.toLowerCase())) continue;
+          next.push({
+            name: member.displayName,
+            role: member.role === "owner" ? "เจ้าของโปรเจกต์" : member.role === "admin" ? "ผู้ดูแลโปรเจกต์" : "สมาชิกทีม",
+            currentTasks: "กำลังทำ 0 งาน",
+          });
+        }
+        return next;
+      });
+    }
+
+    async function prepareProject() {
+      try {
+        let projectId = requestedProjectId;
+        if (!projectId) {
+          const response = await fetch("/api/projects/ensure", {
+            method: "POST",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              externalKey: `cover:${coverImage}`,
+              title: projectTitle,
+              description: "พัฒนาระบบจัดการแข่งขันแบดมินตัน",
+              cover: coverImage,
+              tags: "blue",
+              deadline: "กำหนดส่ง 30 กันยายน 2026",
+              progress: progressPercent,
+            }),
+            signal: controller.signal,
+          });
+          if (!response.ok) return;
+          const project = (await response.json()) as { id: string };
+          projectId = project.id;
+          setBackendProjectId(project.id);
+          setCanInviteMembers(true);
+        }
+        if (projectId) {
+          await loadProjectMembers(projectId);
+          if (requestedProjectId) {
+            const projectsResponse = await fetch("/api/projects", {
+              credentials: "include",
+              cache: "no-store",
+              signal: controller.signal,
+            });
+            if (projectsResponse.ok) {
+              const result = (await projectsResponse.json()) as {
+                projects: Array<{ id: string; role: "owner" | "admin" | "member" }>;
+              };
+              const access = result.projects.find((project) => project.id === projectId);
+              setCanInviteMembers(access?.role === "owner" || access?.role === "admin");
+            }
+          }
+        }
+      } catch (error) {
+        if (!(error instanceof DOMException && error.name === "AbortError")) {
+          console.error("Unable to prepare project collaboration", error);
+        }
+      }
+    }
+
+    void prepareProject();
+    return () => controller.abort();
+  }, [coverImage, projectTitle, requestedProjectId]);
 
   const handleDeleteMember = (name: string) => {
     setMembers((prev) => prev.filter((m) => m.name !== name));
@@ -382,6 +537,27 @@ export default function ProjectPage() {
     return () => window.removeEventListener("click", handleOutsideClick);
   }, [activeMenuMemberName]);
 
+  useEffect(() => {
+    if (!activeMenuTaskId) return;
+    const handleOutsideClick = () => setActiveMenuTaskId(null);
+    window.addEventListener("click", handleOutsideClick);
+    return () => window.removeEventListener("click", handleOutsideClick);
+  }, [activeMenuTaskId]);
+
+  useEffect(() => {
+    if (!activeMenuMeetingId) return;
+    const handleOutsideClick = () => setActiveMenuMeetingId(null);
+    window.addEventListener("click", handleOutsideClick);
+    return () => window.removeEventListener("click", handleOutsideClick);
+  }, [activeMenuMeetingId]);
+
+  useEffect(() => {
+    if (!activeMenuFeedbackId) return;
+    const handleOutsideClick = () => setActiveMenuFeedbackId(null);
+    window.addEventListener("click", handleOutsideClick);
+    return () => window.removeEventListener("click", handleOutsideClick);
+  }, [activeMenuFeedbackId]);
+
   // Form Inputs
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [newTaskAssignee, setNewTaskAssignee] = useState("Chonticha");
@@ -389,9 +565,10 @@ export default function ProjectPage() {
 
   const [newFbTopic, setNewFbTopic] = useState("");
   const [newFbProvider, setNewFbProvider] = useState("อาจารย์ที่ปรึกษา");
-  const [newFbDecision, setNewFbDecision] = useState("รับข้อเสนอ");
   const [newFbAssignee, setNewFbAssignee] = useState("Chonticha");
   const [newFbResult, setNewFbResult] = useState("");
+  const [newFbMeetingId, setNewFbMeetingId] = useState("");
+  const [newFbMeetingLabel, setNewFbMeetingLabel] = useState("ไม่ได้มาจากการประชุม");
 
   const [newMeetingTitle, setNewMeetingTitle] = useState("");
   const [newMeetingSummaryText, setNewMeetingSummaryText] = useState("");
@@ -423,31 +600,66 @@ export default function ProjectPage() {
     ]);
   };
 
-  const handleFeedbackToggle = (id: string) => {
-    const targetFb = feedbackList.find((f) => f.id === id);
-    if (!targetFb) return;
-
-    const nextStatus = targetFb.status === "กำลังแก้ไข" ? "แก้ไขแล้ว" : "กำลังแก้ไข";
-
-    setFeedbackList((prev) =>
-      prev.map((f) => (f.id === id ? { ...f, status: nextStatus } : f))
-    );
-
-    setTimeline((prevTl) => [
-      {
-        id: generateUniqueId("tl"),
-        date: "วันนี้",
-        event: `Feedback '${targetFb.topic}' เปลี่ยนสถานะเป็น ${nextStatus}`,
-      },
-      ...prevTl,
-    ]);
+  const openNewTaskModal = () => {
+    setEditingTask(null);
+    setNewTaskTitle("");
+    setNewTaskAssignee(members[0]?.name || "");
+    setNewTaskSource("");
+    setTaskDueDate(new Date(2026, 6, 28));
+    setShowTaskCalendar(false);
+    setIsAddTaskModalOpen(true);
   };
 
-  const handleAddTask = (e: React.FormEvent) => {
+  const openEditTaskModal = (task: TaskItem) => {
+    setEditingTask(task);
+    setNewTaskTitle(task.title);
+    setNewTaskAssignee(task.assignee);
+    setNewTaskSource(task.source);
+    setTaskDueDate(parseThaiDate(task.dueDate) || new Date());
+    setShowTaskCalendar(false);
+    setActiveMenuTaskId(null);
+    setIsAddTaskModalOpen(true);
+  };
+
+  const closeTaskModal = () => {
+    setIsAddTaskModalOpen(false);
+    setEditingTask(null);
+    setShowTaskCalendar(false);
+  };
+
+  const handleSaveTask = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTaskTitle.trim()) return;
 
     const formattedDate = formatThaiDate(taskDueDate);
+
+    if (editingTask) {
+      const taskId = editingTask.id;
+      const taskTitle = newTaskTitle.trim();
+      const taskAssignee = newTaskAssignee;
+      const taskSource = newTaskSource.trim() || "จากการประชุมทีม";
+      requestEditConfirmation("งาน", taskTitle, () => {
+        setTasks((prev) =>
+          prev.map((task) =>
+            task.id === taskId
+              ? {
+                  ...task,
+                  title: taskTitle,
+                  assignee: taskAssignee,
+                  dueDate: formattedDate,
+                  source: taskSource,
+                }
+              : task,
+          ),
+        );
+        setTimeline((prev) => [
+          { id: generateUniqueId("tl"), date: "วันนี้", event: `แก้ไขข้อมูลงาน '${taskTitle}'` },
+          ...prev,
+        ]);
+        closeTaskModal();
+      });
+      return;
+    }
 
     const newTask: TaskItem = {
       id: generateUniqueId("t"),
@@ -467,25 +679,117 @@ export default function ProjectPage() {
 
     setNewTaskTitle("");
     setNewTaskSource("");
-    setIsAddTaskModalOpen(false);
-    setShowTaskCalendar(false);
+    closeTaskModal();
   };
 
-  const handleAddFeedback = (e: React.FormEvent) => {
+  const handleDeleteTask = (task: TaskItem) => {
+    setTasks((prev) => prev.filter((item) => item.id !== task.id));
+    setTimeline((prev) => [
+      { id: generateUniqueId("tl"), date: "วันนี้", event: `ลบงาน '${task.title}'` },
+      ...prev,
+    ]);
+  };
+
+  const openNewFeedbackModal = () => {
+    setEditingFeedback(null);
+    setNewFbTopic("");
+    setNewFbProvider("อาจารย์ที่ปรึกษา");
+    setNewFbAssignee(members[0]?.name || "");
+    setNewFbResult("");
+    setNewFbMeetingId("");
+    setNewFbMeetingLabel("ไม่ได้มาจากการประชุม");
+    setIsAddFeedbackModalOpen(true);
+  };
+
+  const openEditFeedbackModal = (feedback: FeedbackItem) => {
+    const meeting = meetings.find((item) => item.id === feedback.meetingId);
+    setEditingFeedback(feedback);
+    setNewFbTopic(feedback.topic);
+    setNewFbProvider(feedback.provider);
+    setNewFbAssignee(feedback.assignee);
+    setNewFbResult(feedback.result);
+    setNewFbMeetingId(meeting?.id || "");
+    setNewFbMeetingLabel(
+      meeting ? `${meeting.title} — ${meeting.date}` : "ไม่ได้มาจากการประชุม",
+    );
+    setActiveMenuFeedbackId(null);
+    setIsAddFeedbackModalOpen(true);
+  };
+
+  const closeFeedbackModal = () => {
+    setIsAddFeedbackModalOpen(false);
+    setEditingFeedback(null);
+  };
+
+  const handleSaveFeedback = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newFbTopic.trim()) return;
 
     const formattedDate = formatThaiDate(taskDueDate);
+    const selectedMeeting = meetings.find((meeting) => meeting.id === newFbMeetingId);
+    const meetingReference = selectedMeeting
+      ? `${selectedMeeting.title} — ${selectedMeeting.date}`
+      : "ไม่ได้มาจากการประชุม";
+    const taskSource = selectedMeeting
+      ? `Feedback จาก: ${meetingReference}`
+      : `Feedback จาก ${newFbProvider}`;
+
+    if (editingFeedback) {
+      const feedbackId = editingFeedback.id;
+      const feedbackTopic = newFbTopic.trim();
+      const feedbackProvider = newFbProvider;
+      const feedbackAssignee = newFbAssignee;
+      const feedbackResult = newFbResult.trim() || "อยู่ระหว่างปรับแก้ไข";
+      const meetingId = selectedMeeting?.id;
+      requestEditConfirmation("Feedback", feedbackTopic, () => {
+        setFeedbackList((prev) =>
+          prev.map((feedback) =>
+            feedback.id === feedbackId
+              ? {
+                  ...feedback,
+                  topic: feedbackTopic,
+                  provider: feedbackProvider,
+                  round: meetingReference,
+                  assignee: feedbackAssignee,
+                  result: feedbackResult,
+                  meetingId,
+                }
+              : feedback,
+          ),
+        );
+        setTasks((prev) =>
+          prev.map((task) =>
+            task.feedbackId === feedbackId
+              ? {
+                  ...task,
+                  title: feedbackTopic,
+                  assignee: feedbackAssignee,
+                  source: taskSource,
+                  meetingId,
+                }
+              : task,
+          ),
+        );
+        setTimeline((prev) => [
+          { id: generateUniqueId("tl"), date: "วันนี้", event: `แก้ไข Feedback '${feedbackTopic}'` },
+          ...prev,
+        ]);
+        closeFeedbackModal();
+      });
+      return;
+    }
+
+    const feedbackId = generateUniqueId("f");
 
     const newFb: FeedbackItem = {
-      id: generateUniqueId("f"),
+      id: feedbackId,
       topic: newFbTopic.trim(),
       provider: newFbProvider,
-      round: "Review รอบปัจจุบัน",
-      decision: newFbDecision,
+      round: meetingReference,
       assignee: newFbAssignee,
       status: "กำลังแก้ไข",
       result: newFbResult.trim() || "อยู่ระหว่างปรับแก้ไข",
+      meetingId: selectedMeeting?.id,
     };
 
     setFeedbackList((prev) => [newFb, ...prev]);
@@ -493,12 +797,14 @@ export default function ProjectPage() {
     setTasks((prevTasks) => [
       {
         id: generateUniqueId("t_fb"),
-        title: `แก้ Feedback: ${newFb.topic}`,
+        title: newFb.topic,
         assignee: newFb.assignee,
         dueDate: formattedDate,
         status: "กำลังทำ",
         priority: "สูง",
-        source: `Feedback จาก ${newFb.provider}`,
+        source: taskSource,
+        meetingId: selectedMeeting?.id,
+        feedbackId,
       },
       ...prevTasks,
     ]);
@@ -510,21 +816,96 @@ export default function ProjectPage() {
 
     setNewFbTopic("");
     setNewFbResult("");
-    setIsAddFeedbackModalOpen(false);
+    setNewFbMeetingId("");
+    setNewFbMeetingLabel("ไม่ได้มาจากการประชุม");
+    closeFeedbackModal();
   };
 
-  const handleAddMeeting = (e: React.FormEvent) => {
+  const handleDeleteFeedback = (feedback: FeedbackItem) => {
+    setFeedbackList((prev) => prev.filter((item) => item.id !== feedback.id));
+    setTasks((prev) => prev.filter((task) => task.feedbackId !== feedback.id));
+    setTimeline((prev) => [
+      { id: generateUniqueId("tl"), date: "วันนี้", event: `ลบ Feedback และงาน '${feedback.topic}'` },
+      ...prev,
+    ]);
+  };
+
+  const openNewMeetingModal = () => {
+    setEditingMeeting(null);
+    setNewMeetingTitle("");
+    setNewMeetingSummaryText("");
+    setNewMeetingAgreedText("");
+    setMeetingDate(new Date(2026, 6, 25));
+    setShowMeetingCalendar(false);
+    setIsAddMeetingModalOpen(true);
+  };
+
+  const openEditMeetingModal = (meeting: MeetingItem) => {
+    setEditingMeeting(meeting);
+    setNewMeetingTitle(meeting.title);
+    setNewMeetingSummaryText(meeting.summary.join("\n"));
+    setNewMeetingAgreedText(meeting.agreed.join("\n"));
+    setMeetingDate(parseThaiDate(meeting.date) || new Date());
+    setShowMeetingCalendar(false);
+    setActiveMenuMeetingId(null);
+    setIsAddMeetingModalOpen(true);
+  };
+
+  const closeMeetingModal = () => {
+    setIsAddMeetingModalOpen(false);
+    setEditingMeeting(null);
+    setShowMeetingCalendar(false);
+  };
+
+  const handleSaveMeeting = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newMeetingTitle.trim()) return;
 
     const formattedDate = formatThaiDate(meetingDate);
+    const summary = newMeetingSummaryText.split("\n").filter((s) => s.trim());
+    const agreed = newMeetingAgreedText.split("\n").filter((a) => a.trim());
+
+    if (editingMeeting) {
+      const meetingId = editingMeeting.id;
+      const meetingTitle = newMeetingTitle.trim();
+      const updatedMeetingReference = `${newMeetingTitle.trim()} — ${formattedDate}`;
+      requestEditConfirmation("บันทึกการประชุม", meetingTitle, () => {
+        setMeetings((prev) =>
+          prev.map((meeting) =>
+            meeting.id === meetingId
+              ? { ...meeting, title: meetingTitle, date: formattedDate, summary, agreed }
+              : meeting,
+          ),
+        );
+        setFeedbackList((prev) =>
+          prev.map((feedback) =>
+            feedback.meetingId === meetingId
+              ? { ...feedback, round: updatedMeetingReference }
+              : feedback,
+          ),
+        );
+        setTasks((prev) =>
+          prev.map((task) =>
+            task.meetingId === meetingId
+              ? { ...task, source: `Feedback จาก: ${updatedMeetingReference}` }
+              : task,
+          ),
+        );
+        setTimeline((prev) => [
+          { id: generateUniqueId("tl"), date: "วันนี้", event: `แก้ไขบันทึกการประชุม '${meetingTitle}'` },
+          ...prev,
+        ]);
+        closeMeetingModal();
+      });
+      return;
+    }
 
     const newM: MeetingItem = {
       id: generateUniqueId("m"),
       title: newMeetingTitle.trim(),
       date: formattedDate,
-      summary: newMeetingSummaryText.split("\n").filter((s) => s.trim()),
-      agreed: newMeetingAgreedText.split("\n").filter((a) => a.trim()),
+      summary,
+      agreed,
     };
 
     setMeetings((prev) => [newM, ...prev]);
@@ -536,8 +917,15 @@ export default function ProjectPage() {
     setNewMeetingTitle("");
     setNewMeetingSummaryText("");
     setNewMeetingAgreedText("");
-    setIsAddMeetingModalOpen(false);
-    setShowMeetingCalendar(false);
+    closeMeetingModal();
+  };
+
+  const handleDeleteMeeting = (meeting: MeetingItem) => {
+    setMeetings((prev) => prev.filter((item) => item.id !== meeting.id));
+    setTimeline((prev) => [
+      { id: generateUniqueId("tl"), date: "วันนี้", event: `ลบบันทึกการประชุม '${meeting.title}'` },
+      ...prev,
+    ]);
   };
 
   const filteredTasks = useMemo(() => {
@@ -563,14 +951,9 @@ export default function ProjectPage() {
           >
             Project
           </Link>
-          <Link
-            href={`/project?cover=${encodeURIComponent(coverImage)}#works`}
-            onClick={() => setActiveTab("tasks")}
-          >
-            Works
-          </Link>
-          <Link href={`/calendar?cover=${encodeURIComponent(coverImage)}&title=${encodeURIComponent("Badminton Tournament System")}`}>Calendar</Link>
+          <Link href={`/calendar?cover=${encodeURIComponent(coverImage)}&title=${encodeURIComponent(projectTitle)}${backendProjectId ? `&projectId=${encodeURIComponent(backendProjectId)}` : ""}`}>Calendar</Link>
         </div>
+        <UserProfileMenu />
       </nav>
 
       {/* 2. Main Content */}
@@ -590,7 +973,7 @@ export default function ProjectPage() {
           <div className="project-cover-content">
             <div className="project-header-top">
               <div>
-                <h1 className="project-main-title">Badminton Tournament System</h1>
+                <h1 className="project-main-title">{projectTitle}</h1>
                 <p className="project-goal-desc">
                   <strong>เป้าหมาย:</strong> พัฒนาระบบจัดการแข่งขันแบดมินตัน &nbsp;|&nbsp; <strong>กำหนดส่ง:</strong> 30 กันยายน 2026
                 </p>
@@ -600,10 +983,10 @@ export default function ProjectPage() {
                 <button onClick={() => setIsAddTaskModalOpen(true)} className="btn-banner">
                   <Plus className="w-4 h-4" /> เพิ่มงาน
                 </button>
-                <button onClick={() => setIsAddFeedbackModalOpen(true)} className="btn-banner-outline">
+                <button onClick={openNewFeedbackModal} className="btn-banner-outline">
                   <Plus className="w-4 h-4" /> เพิ่ม Feedback
                 </button>
-                <button onClick={() => setIsAddMeetingModalOpen(true)} className="btn-banner-outline">
+                <button onClick={openNewMeetingModal} className="btn-banner-outline">
                   <Plus className="w-4 h-4" /> บันทึกประชุม
                 </button>
               </div>
@@ -640,11 +1023,8 @@ export default function ProjectPage() {
           <button onClick={() => setActiveTab("all")} className={`sec-tab ${activeTab === "all" ? "active" : ""}`}>
             ภาพรวมโปรเจกต์
           </button>
-          <button onClick={() => setActiveTab("members_timeline")} className={`sec-tab ${activeTab === "members_timeline" ? "active" : ""}`}>
-            สมาชิก & Timeline ({members.length})
-          </button>
-          <button onClick={() => setActiveTab("tasks")} className={`sec-tab ${activeTab === "tasks" ? "active" : ""}`}>
-            แบ่งงานและติดตามสถานะ ({tasks.length})
+          <button onClick={() => setActiveTab("members")} className={`sec-tab ${activeTab === "members" ? "active" : ""}`}>
+            สมาชิก ({members.length})
           </button>
           <button onClick={() => setActiveTab("meetings")} className={`sec-tab ${activeTab === "meetings" ? "active" : ""}`}>
             บันทึกการประชุม ({meetings.length})
@@ -652,28 +1032,48 @@ export default function ProjectPage() {
           <button onClick={() => setActiveTab("feedback")} className={`sec-tab ${activeTab === "feedback" ? "active" : ""}`}>
             Feedback & ปรับแก้ ({feedbackList.length})
           </button>
+          <button onClick={() => setActiveTab("tasks")} className={`sec-tab ${activeTab === "tasks" ? "active" : ""}`}>
+            แบ่งงานและติดตามสถานะ ({tasks.length})
+          </button>
+          <button onClick={() => setActiveTab("timeline")} className={`sec-tab ${activeTab === "timeline" ? "active" : ""}`}>
+            Timeline ({timeline.length})
+          </button>
         </div>
 
         {/* SECTION 1: MEMBERS & ROLES */}
-        {(activeTab === "all" || activeTab === "members_timeline") && (
-          <div style={{ marginBottom: "30px", width: "100%" }}>
+        {(activeTab === "all" || activeTab === "members") && (
+          <div className="project-overview-members" style={{ marginBottom: "30px", width: "100%" }}>
               <div className="section-header-bar" style={{ borderBottom: "none", paddingBottom: "10px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <h2 className="section-header-title" style={{ margin: 0 }}>สมาชิกและหน้าที่ในทีม</h2>
-                <button
-                  type="button"
-                  className="btn-navy"
-                  style={{ height: "34px" }}
-                  onClick={() => {
-                    setEditingMember(null);
-                    setNewMemberName("");
-                    setNewMemberRole("");
-                    setSelectedAvatar("/cv1.png");
-                    setIsAddMemberModalOpen(true);
-                  }}
-                >
-                  <Plus className="w-4 h-4" />
-                  เพิ่มสมาชิก
-                </button>
+                <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                  {canInviteMembers && (
+                    <button
+                      type="button"
+                      className="btn-outline"
+                      style={{ height: "34px" }}
+                      onClick={() => setIsInviteModalOpen(true)}
+                      disabled={!backendProjectId}
+                    >
+                      <UserPlus className="w-4 h-4" />
+                      เชิญเพื่อน
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    className="btn-navy"
+                    style={{ height: "34px" }}
+                    onClick={() => {
+                      setEditingMember(null);
+                      setNewMemberName("");
+                      setNewMemberRole("");
+                      setSelectedAvatar("/cv1.png");
+                      setIsAddMemberModalOpen(true);
+                    }}
+                  >
+                    <Plus className="w-4 h-4" />
+                    เพิ่มสมาชิก
+                  </button>
+                </div>
               </div>
               <div style={{ padding: "8px 0" }}>
                 <div
@@ -908,14 +1308,12 @@ export default function ProjectPage() {
 
         {/* SECTION 2: TASKS & STATUS */}
         {(activeTab === "all" || activeTab === "tasks") && (
-          <div className="section-block">
+          <div className="section-block task-section-block project-overview-tasks">
             <div className="section-header-bar">
               <h2 className="section-header-title">แบ่งงานและติดตามสถานะ</h2>
-              <div style={{ display: "flex", gap: "6px" }}>
-                <button onClick={() => setTaskFilterStatus("all")} className="btn-outline" style={{ padding: "4px 10px", fontSize: "11px", height: "auto" }}>ทั้งหมด</button>
-                <button onClick={() => setTaskFilterStatus("กำลังทำ")} className="btn-outline" style={{ padding: "4px 10px", fontSize: "11px", height: "auto" }}>กำลังทำ</button>
-                <button onClick={() => setTaskFilterStatus("เสร็จแล้ว")} className="btn-outline" style={{ padding: "4px 10px", fontSize: "11px", height: "auto" }}>เสร็จแล้ว</button>
-              </div>
+              <button onClick={openNewTaskModal} className="btn-navy" style={{ height: "34px" }}>
+                <Plus className="w-4 h-4" /> สร้างงานใหม่
+              </button>
             </div>
 
             <div className="section-body">
@@ -931,9 +1329,11 @@ export default function ProjectPage() {
                     style={{ paddingLeft: "32px", height: "34px", fontSize: "12px" }}
                   />
                 </div>
-                <button onClick={() => setIsAddTaskModalOpen(true)} className="btn-navy" style={{ height: "34px" }}>
-                  <Plus className="w-4 h-4" /> สร้างงานใหม่
-                </button>
+                <div style={{ display: "flex", gap: "6px" }}>
+                  <button onClick={() => setTaskFilterStatus("all")} className="btn-outline" style={{ padding: "4px 10px", fontSize: "11px", height: "auto" }}>ทั้งหมด</button>
+                  <button onClick={() => setTaskFilterStatus("กำลังทำ")} className="btn-outline" style={{ padding: "4px 10px", fontSize: "11px", height: "auto" }}>กำลังทำ</button>
+                  <button onClick={() => setTaskFilterStatus("เสร็จแล้ว")} className="btn-outline" style={{ padding: "4px 10px", fontSize: "11px", height: "auto" }}>เสร็จแล้ว</button>
+                </div>
               </div>
 
               <table className="ts-table">
@@ -944,6 +1344,7 @@ export default function ProjectPage() {
                     <th>วันครบกำหนด</th>
                     <th>สถานะ</th>
                     <th>ที่มาของงาน (Origin)</th>
+                    <th aria-label="จัดการงาน" />
                   </tr>
                 </thead>
                 <tbody>
@@ -999,6 +1400,44 @@ export default function ProjectPage() {
                       <td>
                         <span className="source-tag">{t.source}</span>
                       </td>
+                      <td className="task-actions-cell">
+                        <div className="task-actions" style={{ zIndex: activeMenuTaskId === t.id ? 1000 : 20 }}>
+                          <button
+                            className="task-actions-trigger"
+                            type="button"
+                            aria-label={`จัดการงาน ${t.title}`}
+                            aria-haspopup="menu"
+                            aria-expanded={activeMenuTaskId === t.id}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              setActiveMenuTaskId((activeId) => activeId === t.id ? null : t.id);
+                            }}
+                          >
+                            <MoreHorizontal aria-hidden="true" />
+                          </button>
+
+                          {activeMenuTaskId === t.id && (
+                            <div className="task-actions-menu" role="menu" onClick={(event) => event.stopPropagation()}>
+                              <button type="button" role="menuitem" onClick={() => openEditTaskModal(t)}>
+                                <Edit aria-hidden="true" />
+                                <span>แก้ไข</span>
+                              </button>
+                              <button
+                                className="danger"
+                                type="button"
+                                role="menuitem"
+                                onClick={() => {
+                                  setDeletingTask(t);
+                                  setActiveMenuTaskId(null);
+                                }}
+                              >
+                                <Trash2 aria-hidden="true" />
+                                <span>ลบ</span>
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -1009,19 +1448,56 @@ export default function ProjectPage() {
 
         {/* SECTION 3: MEETING NOTES */}
         {(activeTab === "all" || activeTab === "meetings") && (
-          <div className="section-block">
+          <div className="section-block meeting-section-block project-overview-meetings">
             <div className="section-header-bar">
               <h2 className="section-header-title">บันทึกการประชุม (Meeting Summaries)</h2>
-              <button onClick={() => setIsAddMeetingModalOpen(true)} className="btn-navy" style={{ padding: "6px 14px", fontSize: "12px", height: "auto" }}>
+              <button onClick={openNewMeetingModal} className="btn-navy" style={{ padding: "6px 14px", fontSize: "12px", height: "auto" }}>
                 <Plus className="w-3.5 h-3.5" /> บันทึกประชุม
               </button>
             </div>
             <div className="section-body">
               {meetings.map((m) => (
                 <div key={m.id} className="meeting-note-card">
-                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px" }}>
+                  <div className="meeting-note-heading">
                     <h4>{m.title}</h4>
                     <span style={{ fontSize: "12px", color: "#64748b" }}>วันที่: {m.date}</span>
+                  </div>
+
+                  <div className="meeting-actions" style={{ zIndex: activeMenuMeetingId === m.id ? 1000 : 20 }}>
+                    <button
+                      className="task-actions-trigger"
+                      type="button"
+                      aria-label={`จัดการบันทึกการประชุม ${m.title}`}
+                      aria-haspopup="menu"
+                      aria-expanded={activeMenuMeetingId === m.id}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setActiveMenuMeetingId((activeId) => activeId === m.id ? null : m.id);
+                      }}
+                    >
+                      <MoreHorizontal aria-hidden="true" />
+                    </button>
+
+                    {activeMenuMeetingId === m.id && (
+                      <div className="task-actions-menu" role="menu" onClick={(event) => event.stopPropagation()}>
+                        <button type="button" role="menuitem" onClick={() => openEditMeetingModal(m)}>
+                          <Edit aria-hidden="true" />
+                          <span>แก้ไข</span>
+                        </button>
+                        <button
+                          className="danger"
+                          type="button"
+                          role="menuitem"
+                          onClick={() => {
+                            setDeletingMeeting(m);
+                            setActiveMenuMeetingId(null);
+                          }}
+                        >
+                          <Trash2 aria-hidden="true" />
+                          <span>ลบ</span>
+                        </button>
+                      </div>
+                    )}
                   </div>
 
                   <strong style={{ fontSize: "12px", color: "#475569" }}>สรุป:</strong>
@@ -1042,22 +1518,28 @@ export default function ProjectPage() {
 
         {/* SECTION 4: FEEDBACK & REVISIONS */}
         {(activeTab === "all" || activeTab === "feedback") && (
-          <div className="section-block">
+          <div className="section-block feedback-section-block project-overview-feedback">
             <div className="section-header-bar">
               <h2 className="section-header-title">เก็บ Feedback และสิ่งที่ต้องปรับแก้</h2>
-              <span style={{ fontSize: "12px", color: "#cbd5e1" }}>จุดเด่นที่สุดของระบบ TeamSync</span>
+              <button
+                type="button"
+                className="btn-navy"
+                style={{ padding: "6px 14px", fontSize: "12px", height: "auto" }}
+                onClick={openNewFeedbackModal}
+              >
+                <Plus className="w-3.5 h-3.5" /> เพิ่ม Feedback
+              </button>
             </div>
             <div className="section-body" style={{ padding: 0 }}>
               <table className="ts-table">
                 <thead>
                   <tr>
-                    <th>รายการ Feedback</th>
+                    <th>ชื่องาน</th>
                     <th>ผู้ให้</th>
-                    <th>รอบ</th>
-                    <th>การตัดสินใจ</th>
+                    <th>การประชุม / รอบ</th>
                     <th>ผู้รับผิดชอบ</th>
-                    <th>สถานะ</th>
-                    <th>ผลลัพธ์</th>
+                    <th>ผลลัพธ์ที่จะได้</th>
+                    <th aria-label="จัดการ Feedback" />
                   </tr>
                 </thead>
                 <tbody>
@@ -1065,19 +1547,52 @@ export default function ProjectPage() {
                     <tr key={f.id}>
                       <td style={{ fontWeight: 600 }}>{f.topic}</td>
                       <td>{f.provider}</td>
-                      <td style={{ color: "#6b7280" }}>{f.round}</td>
-                      <td style={{ color: "#166534", fontWeight: 600 }}>{f.decision}</td>
-                      <td>{f.assignee}</td>
                       <td>
-                        <button
-                          onClick={() => handleFeedbackToggle(f.id)}
-                          className={`status-pill ${f.status === "แก้ไขแล้ว" ? "status-done" : "status-doing"}`}
-                          style={{ border: "none", cursor: "pointer" }}
-                        >
-                          {f.status}
-                        </button>
+                        <span className="feedback-round-title">{f.round.split(" — ")[0]}</span>
+                        {f.round.includes(" — ") && (
+                          <span className="feedback-round-date">{f.round.split(" — ").slice(1).join(" — ")}</span>
+                        )}
                       </td>
+                      <td>{f.assignee}</td>
                       <td style={{ fontSize: "12px", color: "#374151" }}>{f.result}</td>
+                      <td className="task-actions-cell">
+                        <div className="task-actions" style={{ zIndex: activeMenuFeedbackId === f.id ? 1000 : 20 }}>
+                          <button
+                            className="task-actions-trigger"
+                            type="button"
+                            aria-label={`จัดการ Feedback ${f.topic}`}
+                            aria-haspopup="menu"
+                            aria-expanded={activeMenuFeedbackId === f.id}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              setActiveMenuFeedbackId((activeId) => activeId === f.id ? null : f.id);
+                            }}
+                          >
+                            <MoreHorizontal aria-hidden="true" />
+                          </button>
+
+                          {activeMenuFeedbackId === f.id && (
+                            <div className="task-actions-menu" role="menu" onClick={(event) => event.stopPropagation()}>
+                              <button type="button" role="menuitem" onClick={() => openEditFeedbackModal(f)}>
+                                <Edit aria-hidden="true" />
+                                <span>แก้ไข</span>
+                              </button>
+                              <button
+                                className="danger"
+                                type="button"
+                                role="menuitem"
+                                onClick={() => {
+                                  setDeletingFeedback(f);
+                                  setActiveMenuFeedbackId(null);
+                                }}
+                              >
+                                <Trash2 aria-hidden="true" />
+                                <span>ลบ</span>
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -1087,8 +1602,8 @@ export default function ProjectPage() {
         )}
 
         {/* SECTION 5: TIMELINE */}
-        {(activeTab === "all" || activeTab === "members_timeline") && (
-          <div className="section-block" style={{ marginTop: "28px" }}>
+        {(activeTab === "all" || activeTab === "timeline") && (
+          <div className="section-block project-overview-timeline" style={{ marginTop: "28px" }}>
             <div className="section-header-bar">
               <h2 className="section-header-title">Timeline ประวัติโปรเจกต์</h2>
               <span style={{ fontSize: "12px", color: "#cbd5e1" }}>ช่วยให้สมาชิกตามบริบทโปรเจกต์ได้ทัน</span>
@@ -1113,12 +1628,12 @@ export default function ProjectPage() {
         <div className="modal-backdrop">
           <div className="modal-dialog">
             <div className="modal-title-bar">
-              <h3>เพิ่มงานใหม่</h3>
-              <button onClick={() => setIsAddTaskModalOpen(false)} style={{ border: "none", background: "none", cursor: "pointer" }}>
+              <h3>{editingTask ? "แก้ไขงาน" : "เพิ่มงานใหม่"}</h3>
+              <button onClick={closeTaskModal} style={{ border: "none", background: "none", cursor: "pointer" }}>
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <form onSubmit={handleAddTask}>
+            <form onSubmit={handleSaveTask}>
               <div className="form-group">
                 <label className="form-label">ชื่องาน *</label>
                 <input
@@ -1193,11 +1708,11 @@ export default function ProjectPage() {
               </div>
 
               <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px", marginTop: "18px" }}>
-                <button type="button" onClick={() => setIsAddTaskModalOpen(false)} className="btn-outline">
+                <button type="button" onClick={closeTaskModal} className="btn-outline">
                   ยกเลิก
                 </button>
                 <button type="submit" className="btn-navy">
-                  บันทึกสร้างงาน
+                  {editingTask ? "บันทึกการแก้ไข" : "บันทึกสร้างงาน"}
                 </button>
               </div>
             </form>
@@ -1210,14 +1725,14 @@ export default function ProjectPage() {
         <div className="modal-backdrop">
           <div className="modal-dialog">
             <div className="modal-title-bar">
-              <h3>เพิ่ม Feedback ใหม่</h3>
-              <button onClick={() => setIsAddFeedbackModalOpen(false)} style={{ border: "none", background: "none", cursor: "pointer" }}>
+              <h3>{editingFeedback ? "แก้ไข Feedback" : "เพิ่ม Feedback ใหม่"}</h3>
+              <button onClick={closeFeedbackModal} style={{ border: "none", background: "none", cursor: "pointer" }}>
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <form onSubmit={handleAddFeedback}>
+            <form onSubmit={handleSaveFeedback}>
               <div className="form-group">
-                <label className="form-label">รายการ Feedback *</label>
+                <label className="form-label">ชื่องาน *</label>
                 <input
                   type="text"
                   required
@@ -1226,6 +1741,29 @@ export default function ProjectPage() {
                   onChange={(e) => setNewFbTopic(e.target.value)}
                   className="form-input"
                 />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">อ้างอิงจากบันทึกการประชุม</label>
+                <Combobox
+                  options={[
+                    "ไม่ได้มาจากการประชุม",
+                    ...meetings.map((meeting) => `${meeting.title} — ${meeting.date}`),
+                  ]}
+                  value={newFbMeetingLabel}
+                  onChange={(value) => {
+                    setNewFbMeetingLabel(value);
+                    const meeting = meetings.find((item) => `${item.title} — ${item.date}` === value);
+                    setNewFbMeetingId(meeting?.id || "");
+                  }}
+                  placeholder="เลือกบันทึกการประชุม..."
+                  showAllOptionsOnOpen
+                  showCheckmark={false}
+                  optionSecondarySeparator=" — "
+                />
+                <p className="feedback-meeting-help">
+                  รายการที่เลือกจะแสดงในคอลัมน์ “รอบ” และที่มาของงานที่ระบบสร้าง
+                </p>
               </div>
 
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "20px" }}>
@@ -1240,6 +1778,8 @@ export default function ProjectPage() {
                     value={newFbAssignee}
                     onChange={(val) => setNewFbAssignee(val)}
                     placeholder="เลือกผู้รับผิดชอบ..."
+                    showAllOptionsOnOpen
+                    showCheckmark={false}
                   />
                 </div>
               </div>
@@ -1256,11 +1796,11 @@ export default function ProjectPage() {
               </div>
 
               <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px", marginTop: "18px" }}>
-                <button type="button" onClick={() => setIsAddFeedbackModalOpen(false)} className="btn-outline">
+                <button type="button" onClick={closeFeedbackModal} className="btn-outline">
                   ยกเลิก
                 </button>
                 <button type="submit" className="btn-navy">
-                  บันทึก Feedback
+                  {editingFeedback ? "บันทึกการแก้ไข" : "บันทึก Feedback"}
                 </button>
               </div>
             </form>
@@ -1273,13 +1813,13 @@ export default function ProjectPage() {
         <div className="modal-backdrop">
           <div className="modal-dialog">
             <div className="modal-title-bar">
-              <h3>บันทึกผลการประชุม</h3>
-              <button onClick={() => setIsAddMeetingModalOpen(false)} style={{ border: "none", background: "none", cursor: "pointer" }}>
+              <h3>{editingMeeting ? "แก้ไขบันทึกการประชุม" : "บันทึกผลการประชุม"}</h3>
+              <button onClick={closeMeetingModal} style={{ border: "none", background: "none", cursor: "pointer" }}>
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <form onSubmit={handleAddMeeting}>
-              <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: "16px", marginBottom: "20px" }}>
+            <form onSubmit={handleSaveMeeting}>
+              <div className="meeting-form-row">
                 <div>
                   <label className="form-label">หัวข้อการประชุม *</label>
                   <input
@@ -1313,8 +1853,8 @@ export default function ProjectPage() {
                       textAlign: "left",
                     }}
                   >
-                    <span>{formatThaiDate(meetingDate)}</span>
-                    <ChevronDown style={{ width: 16, height: 16, color: "#94a3b8", transform: showMeetingCalendar ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.15s ease" }} />
+                    <span style={{ whiteSpace: "nowrap" }}>{formatThaiDate(meetingDate)}</span>
+                    <ChevronDown style={{ width: 16, height: 16, flexShrink: 0, color: "#94a3b8", transform: showMeetingCalendar ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.15s ease" }} />
                   </button>
 
                   {showMeetingCalendar && (
@@ -1352,11 +1892,11 @@ export default function ProjectPage() {
               </div>
 
               <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px", marginTop: "18px" }}>
-                <button type="button" onClick={() => setIsAddMeetingModalOpen(false)} className="btn-outline">
+                <button type="button" onClick={closeMeetingModal} className="btn-outline">
                   ยกเลิก
                 </button>
                 <button type="submit" className="btn-navy">
-                  บันทึกผลประชุม
+                  {editingMeeting ? "บันทึกการแก้ไข" : "บันทึกผลประชุม"}
                 </button>
               </div>
             </form>
@@ -1384,39 +1924,49 @@ export default function ProjectPage() {
               if (!newMemberName.trim() || !newMemberRole.trim()) return;
 
               if (editingMember) {
-                // Update existing member
-                setMembers((prev) =>
-                  prev.map((m) =>
-                    m.name === editingMember.name
-                      ? { ...m, name: newMemberName.trim(), role: newMemberRole.trim(), avatarUrl: selectedAvatar }
-                      : m
-                  )
-                );
-
-                // Update task and feedback assignees if name changed
-                if (newMemberName.trim() !== editingMember.name) {
-                  setTasks((prev) =>
-                    prev.map((t) =>
-                      t.assignee === editingMember.name ? { ...t, assignee: newMemberName.trim() } : t
+                const previousName = editingMember.name;
+                const memberName = newMemberName.trim();
+                const memberRole = newMemberRole.trim();
+                const avatarUrl = selectedAvatar;
+                requestEditConfirmation("ข้อมูลสมาชิก", memberName, () => {
+                  setMembers((prev) =>
+                    prev.map((m) =>
+                      m.name === previousName
+                        ? { ...m, name: memberName, role: memberRole, avatarUrl }
+                        : m
                     )
                   );
-                  setFeedbackList((prev) =>
-                    prev.map((f) =>
-                      f.assignee === editingMember.name ? { ...f, assignee: newMemberName.trim() } : f
-                    )
-                  );
-                }
 
-                setTimeline((prevTl) => [
-                  {
-                    id: generateUniqueId("tl"),
-                    date: "วันนี้",
-                    event: `แก้ไขข้อมูลสมาชิก '${editingMember.name}' เป็น '${newMemberName.trim()}' (${newMemberRole.trim()})`,
-                  },
-                  ...prevTl,
-                ]);
+                  // Keep assignees in linked tasks and feedback in sync after a rename.
+                  if (memberName !== previousName) {
+                    setTasks((prev) =>
+                      prev.map((t) =>
+                        t.assignee === previousName ? { ...t, assignee: memberName } : t
+                      )
+                    );
+                    setFeedbackList((prev) =>
+                      prev.map((f) =>
+                        f.assignee === previousName ? { ...f, assignee: memberName } : f
+                      )
+                    );
+                  }
 
-                setEditingMember(null);
+                  setTimeline((prevTl) => [
+                    {
+                      id: generateUniqueId("tl"),
+                      date: "วันนี้",
+                      event: `แก้ไขข้อมูลสมาชิก '${previousName}' เป็น '${memberName}' (${memberRole})`,
+                    },
+                    ...prevTl,
+                  ]);
+
+                  setEditingMember(null);
+                  setNewMemberName("");
+                  setNewMemberRole("");
+                  setSelectedAvatar("/cv1.png");
+                  setIsAddMemberModalOpen(false);
+                });
+                return;
               } else {
                 // Add new member
                 const newMember: MemberItem = {
@@ -1525,6 +2075,92 @@ export default function ProjectPage() {
           </div>
         </div>
       )}
+      {/* Edit Confirmation Dialog shared by every "บันทึกการแก้ไข" action */}
+      <InviteProjectModal
+        isOpen={isInviteModalOpen}
+        projectId={backendProjectId}
+        projectTitle={projectTitle}
+        onClose={() => setIsInviteModalOpen(false)}
+      />
+
+      <AlertDialogSmall
+        open={!!editConfirmation}
+        onOpenChange={(open) => {
+          if (!open) clearEditConfirmation();
+        }}
+        trigger={null}
+        title="ยืนยันการแก้ไข?"
+        description={`คุณต้องการบันทึกการแก้ไข${editConfirmation?.entityLabel || "ข้อมูล"} "${editConfirmation?.itemName || ""}" ใช่หรือไม่?`}
+        cancelText="ยกเลิก"
+        actionText="ยืนยันการแก้ไข"
+        actionBgColor="var(--theme-primary, #17211e)"
+        onAction={() => {
+          const pendingAction = pendingEditActionRef.current;
+          clearEditConfirmation();
+          pendingAction?.();
+        }}
+      />
+
+      {/* Delete Feedback Confirmation Dialog */}
+      <AlertDialogSmall
+        open={!!deletingFeedback}
+        onOpenChange={(open) => {
+          if (!open) setDeletingFeedback(null);
+        }}
+        trigger={null}
+        title="ลบ Feedback นี้?"
+        description={`การลบ "${deletingFeedback?.topic || ""}" จะลบงานที่เชื่อมอยู่ด้วย คุณต้องการดำเนินการต่อหรือไม่?`}
+        cancelText="ยกเลิก"
+        actionText="ลบ Feedback"
+        variant="destructive"
+        onAction={() => {
+          if (deletingFeedback) {
+            handleDeleteFeedback(deletingFeedback);
+            setDeletingFeedback(null);
+          }
+        }}
+      />
+
+      {/* Delete Meeting Confirmation Dialog */}
+      <AlertDialogSmall
+        open={!!deletingMeeting}
+        onOpenChange={(open) => {
+          if (!open) setDeletingMeeting(null);
+        }}
+        trigger={null}
+        title="ลบบันทึกการประชุมนี้?"
+        description={`คุณแน่ใจหรือไม่ว่าต้องการลบบันทึกการประชุม "${deletingMeeting?.title || ""}"?`}
+        cancelText="ยกเลิก"
+        actionText="ลบบันทึก"
+        variant="destructive"
+        onAction={() => {
+          if (deletingMeeting) {
+            handleDeleteMeeting(deletingMeeting);
+            setDeletingMeeting(null);
+          }
+        }}
+      />
+
+      {/* Delete Task Confirmation Dialog */}
+      <AlertDialogSmall
+        open={!!deletingTask}
+        onOpenChange={(open) => {
+          if (!open) setDeletingTask(null);
+        }}
+        trigger={null}
+        title="ลบงานนี้?"
+        description={`คุณแน่ใจหรือไม่ว่าต้องการลบงาน "${deletingTask?.title || ""}"?`}
+        cancelText="ยกเลิก"
+        actionText="ลบงาน"
+        variant="destructive"
+        onAction={() => {
+          if (deletingTask) {
+            handleDeleteTask(deletingTask);
+            setDeletingTask(null);
+          }
+        }}
+      />
+
       {/* Delete Member Confirmation Dialog */}
       <AlertDialogSmall
         open={!!deletingMember}
@@ -1537,6 +2173,7 @@ export default function ProjectPage() {
         cancelText="ยกเลิก"
         actionText="ลบสมาชิก"
         variant="destructive"
+        actionBgColor="var(--theme-primary, #17211e)"
         onAction={() => {
           if (deletingMember) {
             handleDeleteMember(deletingMember.name);

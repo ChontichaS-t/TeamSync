@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import CalendarPage from "@/components/calendar/CalendarPage";
+import { Suspense } from "react";
 
 export const metadata: Metadata = {
   title: "Calendar",
@@ -8,5 +9,5 @@ export const metadata: Metadata = {
 };
 
 export default function CalendarRoute() {
-  return <CalendarPage />;
+  return <Suspense fallback={null}><CalendarPage /></Suspense>;
 }

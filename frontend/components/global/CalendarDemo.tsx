@@ -190,7 +190,7 @@ export function CalendarDemo({ selectedDate, onSelectDate }: CalendarDemoProps =
                 border: "none",
                 cursor: "pointer",
                 backgroundColor: isSelected
-                  ? "#334155"
+                  ? "var(--theme-primary, #17211e)"
                   : isToday
                   ? "#f1f5f9"
                   : "transparent",

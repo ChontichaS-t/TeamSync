@@ -1,13 +1,16 @@
 "use client";
 
 import { Eye, EyeOff, Link2, LockKeyhole, Mail, UserRound } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
 
 type APIError = { error?: string };
 
 export default function RegisterPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const requestedNext = searchParams.get("next") || "/home";
+  const nextPath = requestedNext.startsWith("/") && !requestedNext.startsWith("//") ? requestedNext : "/home";
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -23,10 +26,10 @@ export default function RegisterPage() {
       cache: "no-store",
       signal: controller.signal,
     }).then((response) => {
-      if (response.ok) router.replace("/home");
+      if (response.ok) router.replace(nextPath);
     }).catch(() => undefined);
     return () => controller.abort();
-  }, [router]);
+  }, [nextPath, router]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -54,7 +57,7 @@ export default function RegisterPage() {
         setError(result.error ?? "Unable to create your account. Please try again.");
         return;
       }
-      router.replace("/login");
+      router.replace(`/login?next=${encodeURIComponent(nextPath)}`);
       router.refresh();
     } catch {
       setError("Cannot connect to the server. Please try again.");
@@ -69,7 +72,7 @@ export default function RegisterPage() {
         <a className="brand" href="/home" aria-label="TeamSync home">
           <span>TeamSync</span>
         </a>
-        <a className="auth-navbar-cta" href="/login">Sign in</a>
+        <a className="auth-navbar-cta" href={`/login?next=${encodeURIComponent(nextPath)}`}>Sign in</a>
       </nav>
       <div className="login-scenery" aria-hidden="true">
         <video
@@ -139,7 +142,7 @@ export default function RegisterPage() {
               </button>
             </form>
 
-            <p className="signup-copy register-login-copy">Already have an account? <a href="/login">Sign in</a></p>
+            <p className="signup-copy register-login-copy">Already have an account? <a href={`/login?next=${encodeURIComponent(nextPath)}`}>Sign in</a></p>
           </div>
         </section>
       </section>

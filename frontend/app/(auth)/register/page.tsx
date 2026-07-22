@@ -1,5 +1,6 @@
 import RegisterPage from "@/components/auth/RegisterPage";
 import type { Metadata } from "next";
+import { Suspense } from "react";
 
 export const metadata: Metadata = {
   title: "Create account",
@@ -7,5 +8,5 @@ export const metadata: Metadata = {
 };
 
 export default function RegisterRoute() {
-  return <RegisterPage />;
+  return <Suspense fallback={null}><RegisterPage /></Suspense>;
 }

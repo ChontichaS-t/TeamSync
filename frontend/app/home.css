@@ -68,16 +68,94 @@
 
 .home-navbar-search input::placeholder { color: #777c8e; opacity: 1; }
 
-.home-logout-button {
+.home-profile {
+  position: relative;
+  margin-left: auto;
+}
+
+.home-profile-trigger {
+  min-width: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 10px;
+  padding: 4px 2px;
+  color: #1f2937;
+  border: 0;
+  background: transparent;
+  font: inherit;
   cursor: pointer;
 }
 
-.home-logout-button svg { width: 15px; height: 15px; }
-.home-logout-button:disabled { cursor: wait; opacity: .7; transform: none; }
+.home-profile-avatar {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  color: #374151;
+  border: 1px solid #e5e7eb;
+  border-radius: 50%;
+  background: #f3f4f6;
+}
+
+.home-profile-avatar svg { width: 21px; height: 21px; stroke-width: 1.8; }
+
+.home-profile-name {
+  max-width: 210px;
+  overflow: hidden;
+  font-size: 14px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.home-profile-chevron {
+  width: 15px;
+  height: 15px;
+  transition: transform .16s ease;
+}
+
+.home-profile-trigger[aria-expanded="true"] .home-profile-chevron { transform: rotate(180deg); }
+
+.home-profile-trigger:focus-visible {
+  outline: 2px solid #111827;
+  outline-offset: 4px;
+  border-radius: 8px;
+}
+
+.home-profile-menu {
+  min-width: 160px;
+  position: absolute;
+  top: calc(100% + 9px);
+  right: 0;
+  padding: 6px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 14px 36px rgba(15, 23, 42, .14);
+}
+
+.home-profile-menu button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 12px;
+  color: #fff;
+  border: 0;
+  border-radius: 10px;
+  background: var(--theme-primary, #111);
+  box-shadow: 0 7px 18px var(--theme-primary-shadow, rgba(17, 17, 17, .16));
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .16s ease, transform .16s ease;
+}
+
+.home-profile-menu button:hover { background: var(--theme-primary-hover, #2b2b2b); transform: translateY(-1px); }
+.home-profile-menu button:disabled { cursor: wait; opacity: .6; }
+.home-profile-menu svg { width: 16px; height: 16px; }
 
 .home-navbar .auth-navbar-menu {
   padding: 8px 10px;
@@ -588,6 +666,9 @@
 }
 
 @media (max-width: 520px) {
+  .home-profile-trigger { gap: 7px; }
+  .home-profile-avatar { width: 34px; height: 34px; }
+  .home-profile-name { max-width: 112px; font-size: 13px; }
   .home-workspace { width: min(100% - 24px, 380px); }
   .home-footer { gap: 5px 7px; padding: 15px 16px; text-align: center; }
   .home-heading h1 { font-size: 40px; }
@@ -981,5 +1062,3 @@
 }
 
 /* Media query for cover-picker-grid removed for horizontal scrolling */
-
-

@@ -2,7 +2,8 @@
 
 import { AddProjectModal, NewProjectData } from "@/components/global/AddProjectModal";
 import { AlertDialogSmall } from "@/components/global/AlertDialogSmall";
-import { CalendarDays, Edit3, FolderKanban, LogOut, MoreHorizontal, Plus, Search, Trash2 } from "lucide-react";
+import { UserProfileMenu } from "@/components/global/UserProfileMenu";
+import { CalendarDays, Edit3, FolderKanban, MoreHorizontal, Plus, Search, Trash2 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -21,6 +22,8 @@ type ProjectItem = {
   deadline: string;
   progress: number;
   members: string[];
+  memberCount?: number;
+  role?: "owner" | "admin" | "member";
 };
 
 const INITIAL_PROJECTS: ProjectItem[] = [
@@ -35,7 +38,6 @@ export default function HomePage() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   
   // State for projects, modal, menu, and delete dialog
@@ -76,6 +78,38 @@ export default function HomePage() {
         }
         const result = (await response.json()) as { user: User };
         setUser(result.user);
+
+        const projectsResponse = await fetch("/api/projects", {
+          credentials: "include",
+          cache: "no-store",
+          signal: controller.signal,
+        });
+        if (projectsResponse.ok) {
+          const projectResult = (await projectsResponse.json()) as {
+            projects: Array<{
+              id: string;
+              title: string;
+              description: string;
+              cover: string;
+              tags: string;
+              deadline: string;
+              progress: number;
+              memberCount: number;
+              role: "owner" | "admin" | "member";
+            }>;
+          };
+          const joinedProjects: ProjectItem[] = projectResult.projects
+            .filter((project) => project.role !== "owner")
+            .map((project) => ({
+              ...project,
+              deadline: project.deadline || "ยังไม่ระบุกำหนดส่ง",
+              members: ["/cv1.png"],
+            }));
+          setProjects((current) => {
+            const joinedCovers = new Set(joinedProjects.map((project) => project.cover));
+            return [...joinedProjects, ...current.filter((project) => !joinedCovers.has(project.cover))];
+          });
+        }
       } catch (error) {
         if (!(error instanceof DOMException && error.name === "AbortError")) {
           router.replace("/login");
@@ -88,16 +122,6 @@ export default function HomePage() {
     void loadSession();
     return () => controller.abort();
   }, [router]);
-
-  async function logout() {
-    setIsLoggingOut(true);
-    await fetch("/api/auth/logout", {
-      method: "POST",
-      credentials: "include",
-    }).catch(() => undefined);
-    router.replace("/login");
-    router.refresh();
-  }
 
   // Create or Update Project
   const handleSaveProject = (projectData: NewProjectData) => {
@@ -162,10 +186,7 @@ export default function HomePage() {
             onChange={(event) => setSearchQuery(event.target.value)}
           />
         </label>
-        <button className="auth-navbar-cta home-logout-button" type="button" onClick={logout} disabled={isLoggingOut}>
-          <LogOut aria-hidden="true" />
-          <span>{isLoggingOut ? "Signing out..." : "Logout"}</span>
-        </button>
+        <UserProfileMenu displayName={user.displayName} />
       </nav>
 
       <section className="home-workspace" aria-labelledby="home-title">
@@ -200,7 +221,7 @@ export default function HomePage() {
             return (
               <Link
                 className="project-card"
-                href={`/project?cover=${encodeURIComponent(project.cover)}`}
+                href={`/project?cover=${encodeURIComponent(project.cover)}&title=${encodeURIComponent(project.title)}${project.role && project.id ? `&projectId=${encodeURIComponent(String(project.id))}` : ""}`}
                 aria-label={`Open ${project.title} project`}
                 key={project.id}
               >
@@ -285,7 +306,7 @@ export default function HomePage() {
                     <span>{project.deadline}</span>
                   </div>
 
-                  <div className="project-members" aria-label="1 project member">
+                  <div className="project-members" aria-label={`${project.memberCount || 1} project members`}>
                     <div className="project-member-avatars">
                       <span className="project-member-avatar">
                         <Image
@@ -296,7 +317,7 @@ export default function HomePage() {
                         />
                       </span>
                     </div>
-                    <span className="project-member-count">1</span>
+                    <span className="project-member-count">{project.memberCount || 1}</span>
                   </div>
                 </div>
               </Link>

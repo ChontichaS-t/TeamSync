@@ -1,5 +1,6 @@
 import LoginPage from "@/components/auth/LoginPage";
 import type { Metadata } from "next";
+import { Suspense } from "react";
 
 export const metadata: Metadata = {
   title: "Sign in",
@@ -7,5 +8,5 @@ export const metadata: Metadata = {
 };
 
 export default function LoginRoute() {
-  return <LoginPage />;
+  return <Suspense fallback={null}><LoginPage /></Suspense>;
 }

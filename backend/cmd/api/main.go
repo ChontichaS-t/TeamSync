@@ -47,10 +47,12 @@ func main() {
 		slog.Error("authentication setup failed", "error", err)
 		os.Exit(1)
 	}
+	projectRepository := repository.NewProjectRepository(pool)
+	projectService := service.NewProjectService(projectRepository)
 
 	server := &http.Server{
 		Addr:              appConfig.Address,
-		Handler:           controller.NewServer(appConfig, pool, authService).Handler(),
+		Handler:           controller.NewServer(appConfig, pool, authService, projectService).Handler(),
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       15 * time.Second,
 		WriteTimeout:      15 * time.Second,

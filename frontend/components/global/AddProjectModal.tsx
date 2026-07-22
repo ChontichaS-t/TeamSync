@@ -233,10 +233,10 @@ function MiniCalendarPicker({
                 height: "32px",
                 display: "grid",
                 placeItems: "center",
-                border: isSelected ? "1px solid #17211e" : "0",
+                border: isSelected ? "1px solid var(--theme-primary, #17211e)" : "0",
                 borderRadius: "8px",
                 backgroundColor: isSelected
-                  ? "#17211e"
+                  ? "var(--theme-primary, #17211e)"
                   : isToday
                   ? "#f1f5f9"
                   : "transparent",
