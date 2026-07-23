@@ -117,7 +117,6 @@
 .project-overview-members { order: 1; }
 .project-overview-meetings { order: 2; }
 .project-overview-tasks { order: 3; }
-.project-overview-timeline { order: 4; }
 
 /* Cover Banner - Hero Section */
 .project-cover-banner {
@@ -721,30 +720,6 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
 }
 
-/* Timeline List */
-.timeline-list {
-  position: relative;
-  padding-left: 20px;
-  border-left: 2px solid #e2e8f0;
-}
-
-.timeline-row {
-  position: relative;
-  margin-bottom: 18px;
-}
-
-.timeline-row::before {
-  content: "";
-  position: absolute;
-  left: -25px;
-  top: 5px;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: var(--theme-primary, #17211e);
-  box-shadow: 0 0 0 3px #ffffff;
-}
-
 @media (max-width: 1280px) {
   .project-quick-stats {
     grid-template-columns: repeat(5, minmax(150px, 1fr));
@@ -883,43 +858,6 @@ textarea.form-input {
 @keyframes modalSlideUp {
   from { opacity: 0; transform: translateY(14px); }
   to { opacity: 1; transform: translateY(0); }
-}
-
-/* Members & Timeline Grid Layout */
-.members-timeline-container {
-  display: grid;
-  grid-template-columns: 1.2fr 0.8fr;
-  gap: 28px;
-  align-items: start;
-  margin-bottom: 28px;
-}
-
-/* Remove default bottom margin from the blocks inside grid to prevent double spacing */
-.members-timeline-container .section-block {
-  margin-bottom: 0;
-}
-
-.timeline-date {
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-bottom: 3px;
-}
-
-.timeline-event {
-  font-size: 13.5px;
-  font-weight: 550;
-  color: var(--text-main);
-  line-height: 1.4;
-}
-
-@media (max-width: 1024px) {
-  .members-timeline-container {
-    grid-template-columns: 1fr;
-    gap: 28px;
-  }
 }
 
 @media (max-width: 520px) {
@@ -1358,14 +1296,6 @@ textarea.form-input {
   box-shadow: none;
 }
 
-.dark .timeline-list {
-  border-left-color: #334155;
-}
-
-.dark .timeline-row::before {
-  box-shadow: 0 0 0 3px #0f172a;
-}
-
 .dark .modal-dialog {
   background: #1e293b;
   box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6);
@@ -1721,6 +1651,5 @@ textarea.form-input {
 .dark .ts-combobox-check {
   color: var(--theme-primary, #17211e);
 }
-
 
 

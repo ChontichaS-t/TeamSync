@@ -45,12 +45,6 @@ export interface MeetingItem {
   agreed: string[];
 }
 
-export interface TimelineItem {
-  id: string;
-  date: string;
-  event: string;
-}
-
 type ApiPerson = { id: string; displayName: string } | null;
 type ApiTask = { id: string; title: string; assignee: ApiPerson; dueDate: string; status: TaskStatus; priority: "ต่ำ" | "ปานกลาง" | "สูง"; source: string; provider: string; expectedResult: string; meetingId: string | null; feedbackId: string | null };
 type ApiMeeting = { id: string; title: string; date: string; summary: string[]; agreed: string[] };
@@ -228,10 +222,9 @@ export default function ProjectPage() {
     "--theme-primary-shadow": activeTheme.shadow,
   } as React.CSSProperties;
 
-  const [activeTab, setActiveTab] = useState<"all" | "tasks" | "meetings" | "members" | "timeline">("all");
+  const [activeTab, setActiveTab] = useState<"all" | "tasks" | "meetings" | "members">("all");
   const [tasks, setTasks] = useState<TaskItem[]>([]);
   const [meetings, setMeetings] = useState<MeetingItem[]>([]);
-  const [timeline, setTimeline] = useState<TimelineItem[]>([]);
   const [members, setMembers] = useState<MemberItem[]>([]);
   const [apiError, setApiError] = useState("");
   const [backendProjectId, setBackendProjectId] = useState<string | null>(requestedProjectId);
@@ -299,15 +292,13 @@ export default function ProjectPage() {
 
     async function loadWorkspace(projectId: string) {
       const encoded = encodeURIComponent(projectId);
-      const [memberResult, taskResult, meetingResult, activityResult] = await Promise.all([
+      const [memberResult, taskResult, meetingResult] = await Promise.all([
         apiFetch<{ members: Array<{ id: string; displayName: string; role: "owner" | "admin" | "member"; responsibility: string; avatarUrl: string }> }>(`/api/projects/${encoded}/members`, { signal: controller.signal }),
         apiFetch<{ tasks: ApiTask[] }>(`/api/projects/${encoded}/tasks`, { signal: controller.signal }),
         apiFetch<{ meetings: ApiMeeting[] }>(`/api/projects/${encoded}/meetings`, { signal: controller.signal }),
-        apiFetch<{ activity: Array<{ id: string; createdAt: string; message: string }> }>(`/api/projects/${encoded}/activity?limit=5`, { signal: controller.signal }),
       ]);
       setTasks(taskResult.tasks.map(mapApiTask));
       setMeetings(meetingResult.meetings.map(mapApiMeeting));
-      setTimeline(activityResult.activity.map((item) => ({ id: item.id, date: new Intl.DateTimeFormat("th-TH", { dateStyle: "medium" }).format(new Date(item.createdAt)), event: item.message })));
       setMembers(memberResult.members.map((member, index) => ({ id: member.id, name: member.displayName, projectRole: member.role, role: member.responsibility || (member.role === "owner" ? "เจ้าของโปรเจกต์" : member.role === "admin" ? "ผู้ดูแลโปรเจกต์" : "สมาชิกทีม"), currentTasks: `กำลังทำ ${taskResult.tasks.filter((task) => task.assignee?.id === member.id && task.status !== "เสร็จแล้ว").length} งาน`, avatarUrl: member.avatarUrl || `/cv${(index % 5) + 1}.png` })));
     }
 
@@ -365,12 +356,6 @@ export default function ProjectPage() {
     return () => controller.abort();
   }, [coverImage, projectTitle, requestedProjectId]);
 
-  const refreshActivity = async () => {
-    if (!backendProjectId) return;
-    const result = await apiFetch<{ activity: Array<{ id: string; createdAt: string; message: string }> }>(`/api/projects/${encodeURIComponent(backendProjectId)}/activity?limit=5`);
-    setTimeline(result.activity.map((item) => ({ id: item.id, date: new Intl.DateTimeFormat("th-TH", { dateStyle: "medium" }).format(new Date(item.createdAt)), event: item.message })));
-  };
-
   const refreshWorkItems = async () => {
     if (!backendProjectId) return;
     const encoded = encodeURIComponent(backendProjectId);
@@ -380,7 +365,6 @@ export default function ProjectPage() {
     ]);
     setTasks(taskResult.tasks.map(mapApiTask));
     setMeetings(meetingResult.meetings.map(mapApiMeeting));
-    await refreshActivity();
   };
 
   const assigneeId = (name: string) => members.find((member) => member.name === name)?.id || "";
@@ -399,7 +383,6 @@ export default function ProjectPage() {
     try {
       await apiFetch<void>(`/api/projects/${encodeURIComponent(backendProjectId)}/members/${encodeURIComponent(member.id)}`, { method: "DELETE" });
       setMembers((prev) => prev.filter((item) => item.id !== member.id));
-      await refreshActivity();
     } catch (error) {
       setApiError(error instanceof Error ? error.message : "ไม่สามารถนำสมาชิกออกได้");
     }
@@ -728,9 +711,6 @@ export default function ProjectPage() {
           </button>
           <button onClick={() => setActiveTab("tasks")} className={`sec-tab ${activeTab === "tasks" ? "active" : ""}`}>
             งานและรายการปรับแก้ ({tasks.length})
-          </button>
-          <button onClick={() => setActiveTab("timeline")} className={`sec-tab ${activeTab === "timeline" ? "active" : ""}`}>
-            Timeline ({timeline.length})
           </button>
         </div>
 
@@ -1158,26 +1138,6 @@ export default function ProjectPage() {
           </div>
         )}
 
-        {/* SECTION 4: TIMELINE */}
-        {(activeTab === "all" || activeTab === "timeline") && (
-          <div className="section-block project-overview-timeline" style={{ marginTop: "28px" }}>
-            <div className="section-header-bar">
-              <h2 className="section-header-title">Timeline ประวัติโปรเจกต์</h2>
-              <span style={{ fontSize: "12px", color: "#cbd5e1" }}>แสดง 5 รายการล่าสุด</span>
-            </div>
-            <div className="section-body">
-              <div className="timeline-list">
-                {timeline.map((item) => (
-                  <div key={item.id} className="timeline-row">
-                    <div className="timeline-date">{item.date}</div>
-                    <div className="timeline-event">{item.event}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
       </div>
 
       {/* MODAL 1: Add Task */}
@@ -1529,7 +1489,6 @@ export default function ProjectPage() {
         projectId={backendProjectId}
         projectTitle={projectTitle}
         onClose={() => setIsInviteModalOpen(false)}
-        onCreated={refreshActivity}
       />
 
       <AlertDialogSmall

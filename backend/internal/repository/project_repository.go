@@ -84,9 +84,6 @@ func (r *ProjectRepository) CreateProject(ctx context.Context, userID string, in
 	if _, err = tx.Exec(ctx, `INSERT INTO project_members(project_id,user_id,role) VALUES($1,$2,'owner')`, project.ID, userID); err != nil {
 		return pages.Project{}, err
 	}
-	if _, err = tx.Exec(ctx, `INSERT INTO project_activity_logs(project_id,actor_id,event_type,message) VALUES($1,$2,'project.created',$3)`, project.ID, userID, "สร้างโปรเจกต์ '"+project.Title+"'"); err != nil {
-		return pages.Project{}, err
-	}
 	if err = tx.Commit(ctx); err != nil {
 		return pages.Project{}, err
 	}
@@ -132,9 +129,6 @@ func (r *ProjectRepository) UpdateProject(ctx context.Context, userID, projectID
 		return pages.Project{}, err
 	}
 	if err = tx.QueryRow(ctx, `SELECT count(*) FROM project_members WHERE project_id=$1`, projectID).Scan(&project.MemberCount); err != nil {
-		return pages.Project{}, err
-	}
-	if _, err = tx.Exec(ctx, `INSERT INTO project_activity_logs(project_id,actor_id,event_type,message) VALUES($1,$2,'project.updated',$3)`, projectID, userID, "แก้ไขโปรเจกต์ '"+input.Title+"'"); err != nil {
 		return pages.Project{}, err
 	}
 	if err = tx.Commit(ctx); err != nil {
@@ -233,7 +227,7 @@ func (r *ProjectRepository) UpdateMemberRole(ctx context.Context, userID, projec
 	if err != nil {
 		return pages.ProjectMember{}, err
 	}
-	if _, err = tx.Exec(ctx, `INSERT INTO project_activity_logs(project_id,actor_id,event_type,message) VALUES($1,$2,'member.role_updated',$3)`, projectID, userID, fmt.Sprintf("เปลี่ยนสิทธิ์ %s เป็น %s", member.DisplayName, role)); err != nil {
+	if err = logActivity(ctx, tx, projectID, userID, "member.role_updated", fmt.Sprintf("เปลี่ยนสิทธิ์ %s เป็น %s", member.DisplayName, role)); err != nil {
 		return pages.ProjectMember{}, err
 	}
 	if err = tx.Commit(ctx); err != nil {
@@ -270,9 +264,6 @@ func (r *ProjectRepository) UpdateMemberProfile(ctx context.Context, userID, pro
 	}
 	member.DisplayName = input.DisplayName
 	member.AvatarURL = input.AvatarURL
-	if err = logActivity(ctx, tx, projectID, userID, "member.profile_updated", fmt.Sprintf("แก้ไขข้อมูลสมาชิก '%s'", input.DisplayName)); err != nil {
-		return pages.ProjectMember{}, err
-	}
 	if err = tx.Commit(ctx); err != nil {
 		return pages.ProjectMember{}, err
 	}
@@ -332,9 +323,6 @@ func (r *ProjectRepository) CreateInvitation(ctx context.Context, userID, projec
 	if err != nil {
 		return "", fmt.Errorf("create project invitation: %w", err)
 	}
-	if err = logActivity(ctx, tx, projectID, userID, "invitation.created", "สร้างลิงก์เชิญเข้าร่วมโปรเจกต์"); err != nil {
-		return "", fmt.Errorf("log project invitation: %w", err)
-	}
 	if err = tx.Commit(ctx); err != nil {
 		return "", fmt.Errorf("commit project invitation: %w", err)
 	}
@@ -380,9 +368,6 @@ func (r *ProjectRepository) RevokeInvitation(ctx context.Context, userID, projec
 	}
 	if command.RowsAffected() == 0 {
 		return service.ErrProjectForbidden
-	}
-	if err = logActivity(ctx, tx, projectID, userID, "invitation.revoked", "ยกเลิกลิงก์เชิญเข้าร่วมโปรเจกต์"); err != nil {
-		return fmt.Errorf("log revoked project invitation: %w", err)
 	}
 	return tx.Commit(ctx)
 }
@@ -454,11 +439,11 @@ func (r *ProjectRepository) AcceptInvitation(ctx context.Context, userID string,
 		if _, err := tx.Exec(ctx, `UPDATE project_invitations SET used_count = used_count + 1 WHERE id = $1`, invitationID); err != nil {
 			return pages.Project{}, fmt.Errorf("consume invitation: %w", err)
 		}
-		if _, err := tx.Exec(ctx, `
-			INSERT INTO project_activity_logs (project_id, actor_id, event_type, message)
-			SELECT $1, account.id, 'member.joined', 'สมาชิกใหม่เข้าร่วมโปรเจกต์: ' || account.display_name
-			FROM users account WHERE account.id = $2
-		`, project.ID, userID); err != nil {
+		var memberName string
+		if err := tx.QueryRow(ctx, `SELECT display_name FROM users WHERE id=$1`, userID).Scan(&memberName); err != nil {
+			return pages.Project{}, fmt.Errorf("load joined member: %w", err)
+		}
+		if err := logActivity(ctx, tx, project.ID, userID, "member.joined", "สมาชิกใหม่เข้าร่วมโปรเจกต์: "+memberName); err != nil {
 			return pages.Project{}, fmt.Errorf("log project join: %w", err)
 		}
 	}

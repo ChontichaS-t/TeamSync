@@ -69,6 +69,12 @@ func nullableUUID(value string) any {
 }
 
 func logActivity(ctx context.Context, tx pgx.Tx, projectID, actorID, eventType, message string) error {
+	switch eventType {
+	case "task.deleted", "feedback.deleted", "meeting.deleted", "event.deleted",
+		"member.joined", "member.removed", "member.role_updated":
+	default:
+		return nil
+	}
 	_, err := tx.Exec(ctx, `INSERT INTO project_activity_logs (project_id,actor_id,event_type,message) VALUES ($1,$2,$3,$4)`, projectID, actorID, eventType, message)
 	return err
 }
@@ -145,9 +151,6 @@ func (r *WorkspaceRepository) CreateTask(ctx context.Context, userID, projectID 
 	if err != nil {
 		return pages.Task{}, fmt.Errorf("create task: %w", err)
 	}
-	if err = logActivity(ctx, tx, projectID, userID, "task.created", fmt.Sprintf("สร้างงาน '%s'", input.Title)); err != nil {
-		return pages.Task{}, err
-	}
 	item, err := r.getTask(ctx, tx, projectID, id)
 	if err != nil {
 		return pages.Task{}, err
@@ -188,9 +191,6 @@ func (r *WorkspaceRepository) UpdateTask(ctx context.Context, userID, projectID,
 		WHERE project_id=$1
 		  AND id=(SELECT feedback_id FROM tasks WHERE project_id=$1 AND id=$2)
 	`, projectID, taskID, input.Title, input.Provider, nullableUUID(input.AssigneeID), nullableUUID(input.MeetingID), feedbackStatus, input.ExpectedResult); err != nil {
-		return pages.Task{}, err
-	}
-	if err = logActivity(ctx, tx, projectID, userID, "task.updated", fmt.Sprintf("แก้ไขงาน '%s'", input.Title)); err != nil {
 		return pages.Task{}, err
 	}
 	item, err := r.getTask(ctx, tx, projectID, taskID)
@@ -273,9 +273,6 @@ func (r *WorkspaceRepository) CreateMeeting(ctx context.Context, userID, project
 	if err != nil {
 		return pages.Meeting{}, err
 	}
-	if err = logActivity(ctx, tx, projectID, userID, "meeting.created", fmt.Sprintf("บันทึกการประชุม '%s'", input.Title)); err != nil {
-		return pages.Meeting{}, err
-	}
 	item, err := r.getMeeting(ctx, tx, projectID, id)
 	if err != nil {
 		return pages.Meeting{}, err
@@ -303,9 +300,6 @@ func (r *WorkspaceRepository) UpdateMeeting(ctx context.Context, userID, project
 	}
 	source := fmt.Sprintf("Feedback จาก: %s — %s", input.Title, input.Date)
 	if _, err = tx.Exec(ctx, `UPDATE tasks SET source=$3,updated_at=now() WHERE project_id=$1 AND meeting_id=$2 AND feedback_id IS NOT NULL`, projectID, meetingID, source); err != nil {
-		return pages.Meeting{}, err
-	}
-	if err = logActivity(ctx, tx, projectID, userID, "meeting.updated", fmt.Sprintf("แก้ไขบันทึกการประชุม '%s'", input.Title)); err != nil {
 		return pages.Meeting{}, err
 	}
 	item, err := r.getMeeting(ctx, tx, projectID, meetingID)
@@ -436,9 +430,6 @@ func (r *WorkspaceRepository) CreateFeedback(ctx context.Context, userID, projec
 	if err != nil {
 		return pages.Feedback{}, err
 	}
-	if err = logActivity(ctx, tx, projectID, userID, "feedback.created", fmt.Sprintf("เพิ่ม Feedback '%s' และสร้างงานที่เชื่อมโยง", input.Topic)); err != nil {
-		return pages.Feedback{}, err
-	}
 	item, err := r.getFeedback(ctx, tx, projectID, id)
 	if err != nil {
 		return pages.Feedback{}, err
@@ -473,9 +464,6 @@ func (r *WorkspaceRepository) UpdateFeedback(ctx context.Context, userID, projec
 	}
 	_, err = tx.Exec(ctx, `UPDATE tasks SET meeting_id=$3,title=$4,assignee_id=$5,due_date=$6,priority=$7,source=$8,provider=$9,expected_result=$10,updated_at=now() WHERE project_id=$1 AND feedback_id=$2`, projectID, feedbackID, nullableUUID(input.MeetingID), input.Topic, nullableUUID(input.AssigneeID), input.DueDate, input.Priority, source, input.Provider, input.Result)
 	if err != nil {
-		return pages.Feedback{}, err
-	}
-	if err = logActivity(ctx, tx, projectID, userID, "feedback.updated", fmt.Sprintf("แก้ไข Feedback '%s'", input.Topic)); err != nil {
 		return pages.Feedback{}, err
 	}
 	item, err := r.getFeedback(ctx, tx, projectID, feedbackID)
@@ -557,9 +545,6 @@ func (r *WorkspaceRepository) CreateEvent(ctx context.Context, userID, projectID
 	if err != nil {
 		return pages.CalendarEvent{}, err
 	}
-	if err = logActivity(ctx, tx, projectID, userID, "event.created", fmt.Sprintf("เพิ่มกิจกรรม '%s'", input.Title)); err != nil {
-		return pages.CalendarEvent{}, err
-	}
 	item, err := r.getEvent(ctx, tx, projectID, id)
 	if err != nil {
 		return pages.CalendarEvent{}, err
@@ -584,9 +569,6 @@ func (r *WorkspaceRepository) UpdateEvent(ctx context.Context, userID, projectID
 	}
 	if command.RowsAffected() == 0 {
 		return pages.CalendarEvent{}, service.ErrWorkspaceNotFound
-	}
-	if err = logActivity(ctx, tx, projectID, userID, "event.updated", fmt.Sprintf("แก้ไขกิจกรรม '%s'", input.Title)); err != nil {
-		return pages.CalendarEvent{}, err
 	}
 	item, err := r.getEvent(ctx, tx, projectID, eventID)
 	if err != nil {

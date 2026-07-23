@@ -40,6 +40,20 @@ func main() {
 		slog.Error("database migration failed", "error", err)
 		os.Exit(1)
 	}
+	go func() {
+		ticker := time.NewTicker(24 * time.Hour)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				if err := database.PruneActivityLogs(ctx, pool); err != nil {
+					slog.Error("activity log retention failed", "error", err)
+				}
+			}
+		}
+	}()
 
 	authRepository := repository.NewAuthRepository(pool)
 	authService, err := service.NewAuthService(authRepository)

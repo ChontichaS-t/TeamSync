@@ -596,15 +596,6 @@ html, body, .home-page, .project-room, .calendar-page-shell, .section-block, .pr
   color: #fca5a5;
 }
 
-/* Timeline Colors overrides */
-.dark .timeline-date {
-  color: #94a3b8;
-}
-
-.dark .timeline-event {
-  color: #cbd5e1;
-}
-
 /* Filter buttons overrides */
 .dark .btn-outline {
   background: #0f172a;

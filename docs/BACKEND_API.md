@@ -134,11 +134,11 @@ Priority: `ต่ำ`, `ปานกลาง`, `สูง`
 
 Tone: `blue`, `green`, `orange`, `purple`
 
-## Timeline
+## Audit log
 
 `GET /api/projects/{projectId}/activity?limit=50`
 
-Timeline is server-generated for project, member, invitation, task, feedback, meeting, and calendar mutations. Clients cannot directly create or edit audit entries.
+ระบบเก็บเฉพาะเหตุการณ์สำคัญ ได้แก่ การลบงาน/Feedback/บันทึกประชุม/กิจกรรม การเพิ่มหรือนำสมาชิกออก และการเปลี่ยนสิทธิ์สมาชิก โดยลบรายการที่มีอายุเกิน 90 วันอัตโนมัติ Clients ไม่สามารถสร้างหรือแก้ไข audit log โดยตรง
 
 ## Response behavior
 
