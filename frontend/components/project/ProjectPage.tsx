@@ -1073,8 +1073,8 @@ export default function ProjectPage() {
           <div className="section-block meeting-section-block project-overview-meetings">
             <div className="section-header-bar">
               <h2 className="section-header-title">บันทึกการประชุม (Meeting Summaries)</h2>
-              <button onClick={openNewMeetingModal} className="btn-navy" style={{ padding: "6px 14px", fontSize: "12px", height: "auto" }}>
-                <Plus className="w-3.5 h-3.5" /> บันทึกประชุม
+              <button onClick={openNewMeetingModal} className="btn-navy" style={{ height: "34px" }}>
+                <Plus className="w-4 h-4" /> บันทึกการประชุม
               </button>
             </div>
             <div className="section-body">
