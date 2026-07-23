@@ -27,6 +27,11 @@ type ProjectItem = {
   role?: "owner" | "admin" | "member";
 };
 
+type PendingProjectEdit = {
+  project: ProjectItem;
+  data: NewProjectData;
+};
+
 const THEME_COLORS: Record<string, { light: string; dark: string }> = {
   "/new/newsea.jpg": { light: "#1a77a6", dark: "#38bdf8" },
   "/new/newtrain.jpg": { light: "#351e7a", dark: "#a78bfa" },
