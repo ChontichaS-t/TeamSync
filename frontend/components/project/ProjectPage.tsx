@@ -340,7 +340,7 @@ export default function ProjectPage() {
         apiFetch<{ tasks: ApiTask[] }>(`/api/projects/${encoded}/tasks`, { signal: controller.signal }),
         apiFetch<{ meetings: ApiMeeting[] }>(`/api/projects/${encoded}/meetings`, { signal: controller.signal }),
         apiFetch<{ feedback: ApiFeedback[] }>(`/api/projects/${encoded}/feedback`, { signal: controller.signal }),
-        apiFetch<{ activity: Array<{ id: string; createdAt: string; message: string }> }>(`/api/projects/${encoded}/activity?limit=100`, { signal: controller.signal }),
+        apiFetch<{ activity: Array<{ id: string; createdAt: string; message: string }> }>(`/api/projects/${encoded}/activity?limit=5`, { signal: controller.signal }),
       ]);
       setTasks(taskResult.tasks.map(mapApiTask));
       setMeetings(meetingResult.meetings.map(mapApiMeeting));
@@ -409,7 +409,7 @@ export default function ProjectPage() {
 
   const refreshActivity = async () => {
     if (!backendProjectId) return;
-    const result = await apiFetch<{ activity: Array<{ id: string; createdAt: string; message: string }> }>(`/api/projects/${encodeURIComponent(backendProjectId)}/activity?limit=100`);
+    const result = await apiFetch<{ activity: Array<{ id: string; createdAt: string; message: string }> }>(`/api/projects/${encodeURIComponent(backendProjectId)}/activity?limit=5`);
     setTimeline(result.activity.map((item) => ({ id: item.id, date: new Intl.DateTimeFormat("th-TH", { dateStyle: "medium" }).format(new Date(item.createdAt)), event: item.message })));
   };
 
@@ -1398,7 +1398,7 @@ export default function ProjectPage() {
           <div className="section-block project-overview-timeline" style={{ marginTop: "28px" }}>
             <div className="section-header-bar">
               <h2 className="section-header-title">Timeline ประวัติโปรเจกต์</h2>
-              <span style={{ fontSize: "12px", color: "#cbd5e1" }}>ช่วยให้สมาชิกตามบริบทโปรเจกต์ได้ทัน</span>
+              <span style={{ fontSize: "12px", color: "#cbd5e1" }}>แสดง 5 รายการล่าสุด</span>
             </div>
             <div className="section-body">
               <div className="timeline-list">
