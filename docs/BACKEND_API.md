@@ -70,9 +70,10 @@ Tokens are random 256-bit values. Only SHA-256 hashes are stored. Invitations ex
   "assigneeId": "user-uuid-or-empty",
   "dueDate": "2026-07-25",
   "status": "กำลังทำ",
-  "expectedResult": "หน้า Monitor ที่อ่านง่ายและกรองข้อมูลได้",
+  "expectedResult": "เพิ่มตัวกรองและจัดข้อมูลให้อ่านง่ายขึ้น",
   "priority": "สูง",
-  "source": "จากการประชุมทีม",
+  "source": "ประชุมครั้งที่ 2",
+  "provider": "Chonticha",
   "meetingId": "meeting-uuid-or-empty"
 }
 ```

@@ -21,7 +21,8 @@ export interface TaskItem {
   dueDate: string;
   status: TaskStatus;
   priority: "ต่ำ" | "ปานกลาง" | "สูง";
-  source: string; // ที่มาของงาน (e.g. Feedback จากการประชุมครั้งที่ 2)
+  source: string;
+  provider: string;
   expectedResult: string;
   meetingId?: string;
   feedbackId?: string;
@@ -34,19 +35,6 @@ export interface MemberItem {
   projectRole: "owner" | "admin" | "member";
   currentTasks: string;
   avatarUrl?: string;
-}
-
-type FeedbackStatus = "กำลังแก้ไข" | "แก้ไขแล้ว";
-
-export interface FeedbackItem {
-  id: string;
-  topic: string;
-  provider: string;
-  round: string;
-  assignee: string;
-  status: FeedbackStatus;
-  result: string;
-  meetingId?: string;
 }
 
 export interface MeetingItem {
@@ -64,9 +52,8 @@ export interface TimelineItem {
 }
 
 type ApiPerson = { id: string; displayName: string } | null;
-type ApiTask = { id: string; title: string; assignee: ApiPerson; dueDate: string; status: TaskStatus; priority: "ต่ำ" | "ปานกลาง" | "สูง"; source: string; expectedResult: string; meetingId: string | null; feedbackId: string | null };
+type ApiTask = { id: string; title: string; assignee: ApiPerson; dueDate: string; status: TaskStatus; priority: "ต่ำ" | "ปานกลาง" | "สูง"; source: string; provider: string; expectedResult: string; meetingId: string | null; feedbackId: string | null };
 type ApiMeeting = { id: string; title: string; date: string; summary: string[]; agreed: string[] };
-type ApiFeedback = { id: string; topic: string; provider: string; assignee: ApiPerson; status: FeedbackStatus; result: string; meetingId: string | null; taskId?: string | null };
 
 type EditConfirmation = {
   entityLabel: string;
@@ -228,6 +215,18 @@ function mapApiMeeting(meeting: ApiMeeting): MeetingItem {
   return { ...meeting, date: fromISODate(meeting.date) };
 }
 
+function TaskSourceDisplay({ source }: { source: string }) {
+  const [title, ...dateParts] = source.split(" — ");
+  const date = dateParts.join(" — ");
+
+  return (
+    <span className="task-source">
+      <span className="task-source-title">{title || "ไม่ได้มาจากการประชุม"}</span>
+      {date && <span className="task-source-date">{date}</span>}
+    </span>
+  );
+}
+
 const THEME_MAP = {
   "/new/newsea.jpg": { primary: "#1a77a6", hover: "#13587b", shadow: "rgba(26, 119, 166, 0.2)" },
   "/new/newtrain.jpg": { primary: "#351e7a", hover: "#2d0c90ff", shadow: "rgba(53, 30, 122, 0.2)" },
@@ -257,9 +256,8 @@ export default function ProjectPage() {
     "--theme-primary-shadow": activeTheme.shadow,
   } as React.CSSProperties;
 
-  const [activeTab, setActiveTab] = useState<"all" | "tasks" | "feedback" | "meetings" | "members" | "timeline">("all");
+  const [activeTab, setActiveTab] = useState<"all" | "tasks" | "meetings" | "members" | "timeline">("all");
   const [tasks, setTasks] = useState<TaskItem[]>([]);
-  const [feedbackList, setFeedbackList] = useState<FeedbackItem[]>([]);
   const [meetings, setMeetings] = useState<MeetingItem[]>([]);
   const [timeline, setTimeline] = useState<TimelineItem[]>([]);
   const [members, setMembers] = useState<MemberItem[]>([]);
@@ -273,7 +271,6 @@ export default function ProjectPage() {
 
   // Modals
   const [isAddTaskModalOpen, setIsAddTaskModalOpen] = useState(false);
-  const [isAddFeedbackModalOpen, setIsAddFeedbackModalOpen] = useState(false);
   const [isAddMeetingModalOpen, setIsAddMeetingModalOpen] = useState(false);
   const [isAddMemberModalOpen, setIsAddMemberModalOpen] = useState(false);
 
@@ -301,11 +298,6 @@ export default function ProjectPage() {
   const [activeMenuMeetingId, setActiveMenuMeetingId] = useState<string | null>(null);
   const [editingMeeting, setEditingMeeting] = useState<MeetingItem | null>(null);
   const [deletingMeeting, setDeletingMeeting] = useState<MeetingItem | null>(null);
-
-  // Feedback actions state
-  const [activeMenuFeedbackId, setActiveMenuFeedbackId] = useState<string | null>(null);
-  const [editingFeedback, setEditingFeedback] = useState<FeedbackItem | null>(null);
-  const [deletingFeedback, setDeletingFeedback] = useState<FeedbackItem | null>(null);
 
   // Member actions state
   const [activeMenuMemberName, setActiveMenuMemberName] = useState<string | null>(null);
@@ -335,20 +327,14 @@ export default function ProjectPage() {
 
     async function loadWorkspace(projectId: string) {
       const encoded = encodeURIComponent(projectId);
-      const [memberResult, taskResult, meetingResult, feedbackResult, activityResult] = await Promise.all([
+      const [memberResult, taskResult, meetingResult, activityResult] = await Promise.all([
         apiFetch<{ members: Array<{ id: string; displayName: string; role: "owner" | "admin" | "member"; responsibility: string; avatarUrl: string }> }>(`/api/projects/${encoded}/members`, { signal: controller.signal }),
         apiFetch<{ tasks: ApiTask[] }>(`/api/projects/${encoded}/tasks`, { signal: controller.signal }),
         apiFetch<{ meetings: ApiMeeting[] }>(`/api/projects/${encoded}/meetings`, { signal: controller.signal }),
-        apiFetch<{ feedback: ApiFeedback[] }>(`/api/projects/${encoded}/feedback`, { signal: controller.signal }),
         apiFetch<{ activity: Array<{ id: string; createdAt: string; message: string }> }>(`/api/projects/${encoded}/activity?limit=5`, { signal: controller.signal }),
       ]);
       setTasks(taskResult.tasks.map(mapApiTask));
       setMeetings(meetingResult.meetings.map(mapApiMeeting));
-      const meetingMap = new Map(meetingResult.meetings.map((meeting) => [meeting.id, meeting]));
-      setFeedbackList(feedbackResult.feedback.map((feedback) => {
-        const meeting = feedback.meetingId ? meetingMap.get(feedback.meetingId) : undefined;
-        return { ...feedback, assignee: feedback.assignee?.displayName || "ยังไม่มอบหมาย", meetingId: feedback.meetingId || undefined, round: meeting ? `${meeting.title} — ${fromISODate(meeting.date)}` : "ไม่ได้มาจากการประชุม" };
-      }));
       setTimeline(activityResult.activity.map((item) => ({ id: item.id, date: new Intl.DateTimeFormat("th-TH", { dateStyle: "medium" }).format(new Date(item.createdAt)), event: item.message })));
       setMembers(memberResult.members.map((member, index) => ({ id: member.id, name: member.displayName, projectRole: member.role, role: member.responsibility || (member.role === "owner" ? "เจ้าของโปรเจกต์" : member.role === "admin" ? "ผู้ดูแลโปรเจกต์" : "สมาชิกทีม"), currentTasks: `กำลังทำ ${taskResult.tasks.filter((task) => task.assignee?.id === member.id && task.status !== "เสร็จแล้ว").length} งาน`, avatarUrl: member.avatarUrl || `/cv${(index % 5) + 1}.png` })));
     }
@@ -416,18 +402,12 @@ export default function ProjectPage() {
   const refreshWorkItems = async () => {
     if (!backendProjectId) return;
     const encoded = encodeURIComponent(backendProjectId);
-    const [taskResult, meetingResult, feedbackResult] = await Promise.all([
+    const [taskResult, meetingResult] = await Promise.all([
       apiFetch<{ tasks: ApiTask[] }>(`/api/projects/${encoded}/tasks`),
       apiFetch<{ meetings: ApiMeeting[] }>(`/api/projects/${encoded}/meetings`),
-      apiFetch<{ feedback: ApiFeedback[] }>(`/api/projects/${encoded}/feedback`),
     ]);
-    const meetingMap = new Map(meetingResult.meetings.map((meeting) => [meeting.id, meeting]));
     setTasks(taskResult.tasks.map(mapApiTask));
     setMeetings(meetingResult.meetings.map(mapApiMeeting));
-    setFeedbackList(feedbackResult.feedback.map((feedback) => {
-      const meeting = feedback.meetingId ? meetingMap.get(feedback.meetingId) : undefined;
-      return { ...feedback, assignee: feedback.assignee?.displayName || "ยังไม่มอบหมาย", meetingId: feedback.meetingId || undefined, round: meeting ? `${meeting.title} — ${fromISODate(meeting.date)}` : "ไม่ได้มาจากการประชุม" };
-    }));
     await refreshActivity();
   };
 
@@ -474,25 +454,14 @@ export default function ProjectPage() {
     return () => window.removeEventListener("click", handleOutsideClick);
   }, [activeMenuMeetingId]);
 
-  useEffect(() => {
-    if (!activeMenuFeedbackId) return;
-    const handleOutsideClick = () => setActiveMenuFeedbackId(null);
-    window.addEventListener("click", handleOutsideClick);
-    return () => window.removeEventListener("click", handleOutsideClick);
-  }, [activeMenuFeedbackId]);
-
   // Form Inputs
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [newTaskAssignee, setNewTaskAssignee] = useState("Chonticha");
   const [newTaskSource, setNewTaskSource] = useState("");
+  const [newTaskProvider, setNewTaskProvider] = useState("");
   const [newTaskExpectedResult, setNewTaskExpectedResult] = useState("");
-
-  const [newFbTopic, setNewFbTopic] = useState("");
-  const [newFbProvider, setNewFbProvider] = useState("อาจารย์ที่ปรึกษา");
-  const [newFbAssignee, setNewFbAssignee] = useState("Chonticha");
-  const [newFbResult, setNewFbResult] = useState("");
-  const [newFbMeetingId, setNewFbMeetingId] = useState("");
-  const [newFbMeetingLabel, setNewFbMeetingLabel] = useState("ไม่ได้มาจากการประชุม");
+  const [newTaskMeetingId, setNewTaskMeetingId] = useState("");
+  const [newTaskStatus, setNewTaskStatus] = useState<TaskStatus>("ยังไม่เริ่ม");
 
   const [newMeetingTitle, setNewMeetingTitle] = useState("");
   const [newMeetingSummaryText, setNewMeetingSummaryText] = useState("");
@@ -502,7 +471,7 @@ export default function ProjectPage() {
   const totalTasks = tasks.length;
   const completedTasks = tasks.filter((t) => t.status === "เสร็จแล้ว").length;
   const inProgressTasks = tasks.filter((t) => t.status === "กำลังทำ").length;
-  const pendingFeedback = feedbackList.filter((f) => f.status === "กำลังแก้ไข").length;
+  const pendingTasks = tasks.filter((task) => task.status !== "เสร็จแล้ว").length;
   const progressPercent = totalTasks ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
   // Handlers
@@ -512,7 +481,7 @@ export default function ProjectPage() {
     void runMutation(async () => {
       await apiFetch<ApiTask>(`/api/projects/${encodeURIComponent(backendProjectId)}/tasks/${encodeURIComponent(id)}`, {
         method: "PUT",
-        body: JSON.stringify({ title: targetTask.title, assigneeId: assigneeId(targetTask.assignee), dueDate: toISODate(parseThaiDate(targetTask.dueDate)), status: newStatus, priority: targetTask.priority, source: targetTask.source, expectedResult: targetTask.expectedResult, meetingId: targetTask.meetingId || "" }),
+        body: JSON.stringify({ title: targetTask.title, assigneeId: assigneeId(targetTask.assignee), dueDate: toISODate(parseThaiDate(targetTask.dueDate)), status: newStatus, priority: targetTask.priority, source: targetTask.source, provider: targetTask.provider, expectedResult: targetTask.expectedResult, meetingId: targetTask.meetingId || "" }),
       });
       await refreshWorkItems();
     }, "ไม่สามารถเปลี่ยนสถานะงานได้");
@@ -523,7 +492,7 @@ export default function ProjectPage() {
     void runMutation(async () => {
       await apiFetch<ApiTask>(`/api/projects/${encodeURIComponent(backendProjectId)}/tasks/${encodeURIComponent(task.id)}`, {
         method: "PUT",
-        body: JSON.stringify({ title: task.title, assigneeId: assigneeId(task.assignee), dueDate: toISODate(dueDate), status: task.status, priority: task.priority, source: task.source, expectedResult: task.expectedResult, meetingId: task.meetingId || "" }),
+        body: JSON.stringify({ title: task.title, assigneeId: assigneeId(task.assignee), dueDate: toISODate(dueDate), status: task.status, priority: task.priority, source: task.source, provider: task.provider, expectedResult: task.expectedResult, meetingId: task.meetingId || "" }),
       });
       await refreshWorkItems();
     }, "ไม่สามารถแก้ไขวันส่งงานได้");
@@ -533,8 +502,11 @@ export default function ProjectPage() {
     setEditingTask(null);
     setNewTaskTitle("");
     setNewTaskAssignee(members[0]?.name || "");
-    setNewTaskSource("");
+    setNewTaskSource("ไม่ได้มาจากการประชุม");
+    setNewTaskProvider(members[0]?.name || "");
     setNewTaskExpectedResult("");
+    setNewTaskMeetingId("");
+    setNewTaskStatus("ยังไม่เริ่ม");
     setTaskDueDate(new Date(2026, 6, 28));
     setShowTaskCalendar(false);
     setIsAddTaskModalOpen(true);
@@ -545,7 +517,10 @@ export default function ProjectPage() {
     setNewTaskTitle(task.title);
     setNewTaskAssignee(task.assignee);
     setNewTaskSource(task.source);
+    setNewTaskProvider(task.provider);
     setNewTaskExpectedResult(task.expectedResult);
+    setNewTaskMeetingId(task.meetingId || "");
+    setNewTaskStatus(task.status);
     setTaskDueDate(parseThaiDate(task.dueDate) || new Date());
     setShowTaskCalendar(false);
     setActiveMenuTaskId(null);
@@ -561,17 +536,22 @@ export default function ProjectPage() {
   const handleSaveTask = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTaskTitle.trim()) return;
+    if (!newTaskProvider.trim()) {
+      setApiError("กรุณาระบุผู้ให้หรือผู้เสนองาน");
+      return;
+    }
 
     if (editingTask) {
       const taskId = editingTask.id;
       const taskTitle = newTaskTitle.trim();
       const taskAssignee = newTaskAssignee;
-      const taskSource = newTaskSource.trim() || "จากการประชุมทีม";
+      const taskSource = newTaskSource.trim() || "ไม่ได้มาจากการประชุม";
+      const taskProvider = newTaskProvider.trim();
       const taskExpectedResult = newTaskExpectedResult.trim();
       requestEditConfirmation("งาน", taskTitle, () => {
         void runMutation(async () => {
           if (!backendProjectId) return;
-          await apiFetch<ApiTask>(`/api/projects/${encodeURIComponent(backendProjectId)}/tasks/${encodeURIComponent(taskId)}`, { method: "PUT", body: JSON.stringify({ title: taskTitle, assigneeId: assigneeId(taskAssignee), dueDate: toISODate(taskDueDate), status: editingTask.status, priority: editingTask.priority, source: taskSource, expectedResult: taskExpectedResult, meetingId: editingTask.meetingId || "" }) });
+          await apiFetch<ApiTask>(`/api/projects/${encodeURIComponent(backendProjectId)}/tasks/${encodeURIComponent(taskId)}`, { method: "PUT", body: JSON.stringify({ title: taskTitle, assigneeId: assigneeId(taskAssignee), dueDate: toISODate(taskDueDate), status: newTaskStatus, priority: editingTask.priority, source: taskSource, provider: taskProvider, expectedResult: taskExpectedResult, meetingId: newTaskMeetingId }) });
           await refreshWorkItems();
           closeTaskModal();
         }, "ไม่สามารถแก้ไขงานได้");
@@ -581,86 +561,21 @@ export default function ProjectPage() {
 
     void runMutation(async () => {
       if (!backendProjectId) return;
-      await apiFetch<ApiTask>(`/api/projects/${encodeURIComponent(backendProjectId)}/tasks`, { method: "POST", body: JSON.stringify({ title: newTaskTitle.trim(), assigneeId: assigneeId(newTaskAssignee), dueDate: toISODate(taskDueDate), status: "กำลังทำ", priority: "ปานกลาง", source: newTaskSource.trim() || "จากการประชุมทีม", expectedResult: newTaskExpectedResult.trim(), meetingId: "" }) });
+      await apiFetch<ApiTask>(`/api/projects/${encodeURIComponent(backendProjectId)}/tasks`, { method: "POST", body: JSON.stringify({ title: newTaskTitle.trim(), assigneeId: assigneeId(newTaskAssignee), dueDate: toISODate(taskDueDate), status: newTaskStatus, priority: "ปานกลาง", source: newTaskSource.trim() || "ไม่ได้มาจากการประชุม", provider: newTaskProvider.trim(), expectedResult: newTaskExpectedResult.trim(), meetingId: newTaskMeetingId }) });
       await refreshWorkItems();
-      setNewTaskTitle(""); setNewTaskSource(""); setNewTaskExpectedResult(""); closeTaskModal();
+      setNewTaskTitle(""); setNewTaskSource(""); setNewTaskProvider(""); setNewTaskExpectedResult(""); setNewTaskMeetingId(""); closeTaskModal();
     }, "ไม่สามารถเพิ่มงานได้");
   };
 
   const handleDeleteTask = (task: TaskItem) => {
     void runMutation(async () => {
       if (!backendProjectId) return;
-      await apiFetch<void>(`/api/projects/${encodeURIComponent(backendProjectId)}/tasks/${encodeURIComponent(task.id)}`, { method: "DELETE" });
+      const path = task.feedbackId
+        ? `/api/projects/${encodeURIComponent(backendProjectId)}/feedback/${encodeURIComponent(task.feedbackId)}`
+        : `/api/projects/${encodeURIComponent(backendProjectId)}/tasks/${encodeURIComponent(task.id)}`;
+      await apiFetch<void>(path, { method: "DELETE" });
       await refreshWorkItems();
     }, "ไม่สามารถลบงานได้");
-  };
-
-  const openNewFeedbackModal = () => {
-    setEditingFeedback(null);
-    setNewFbTopic("");
-    setNewFbProvider("อาจารย์ที่ปรึกษา");
-    setNewFbAssignee(members[0]?.name || "");
-    setNewFbResult("");
-    setNewFbMeetingId("");
-    setNewFbMeetingLabel("ไม่ได้มาจากการประชุม");
-    setIsAddFeedbackModalOpen(true);
-  };
-
-  const openEditFeedbackModal = (feedback: FeedbackItem) => {
-    const meeting = meetings.find((item) => item.id === feedback.meetingId);
-    setEditingFeedback(feedback);
-    setNewFbTopic(feedback.topic);
-    setNewFbProvider(feedback.provider);
-    setNewFbAssignee(feedback.assignee);
-    setNewFbResult(feedback.result);
-    setNewFbMeetingId(meeting?.id || "");
-    setNewFbMeetingLabel(
-      meeting ? `${meeting.title} — ${meeting.date}` : "ไม่ได้มาจากการประชุม",
-    );
-    setActiveMenuFeedbackId(null);
-    setIsAddFeedbackModalOpen(true);
-  };
-
-  const closeFeedbackModal = () => {
-    setIsAddFeedbackModalOpen(false);
-    setEditingFeedback(null);
-  };
-
-  const handleSaveFeedback = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newFbTopic.trim()) return;
-
-    const selectedMeeting = meetings.find((meeting) => meeting.id === newFbMeetingId);
-    if (editingFeedback) {
-      const feedbackId = editingFeedback.id;
-      const feedbackTopic = newFbTopic.trim();
-      const feedbackProvider = newFbProvider;
-      const feedbackAssignee = newFbAssignee;
-      const feedbackResult = newFbResult.trim() || "อยู่ระหว่างปรับแก้ไข";
-      const meetingId = selectedMeeting?.id || "";
-      requestEditConfirmation("Feedback", feedbackTopic, () => {
-        void runMutation(async () => {
-          if (!backendProjectId) return;
-          await apiFetch<ApiFeedback>(`/api/projects/${encodeURIComponent(backendProjectId)}/feedback/${encodeURIComponent(feedbackId)}`, { method: "PUT", body: JSON.stringify({ topic: feedbackTopic, provider: feedbackProvider, assigneeId: assigneeId(feedbackAssignee), status: editingFeedback.status, result: feedbackResult, meetingId, dueDate: toISODate(taskDueDate), priority: "สูง" }) });
-          await refreshWorkItems(); closeFeedbackModal();
-        }, "ไม่สามารถแก้ไข Feedback ได้");
-      });
-      return;
-    }
-
-    void runMutation(async () => {
-      if (!backendProjectId) return;
-      await apiFetch<ApiFeedback>(`/api/projects/${encodeURIComponent(backendProjectId)}/feedback`, { method: "POST", body: JSON.stringify({ topic: newFbTopic.trim(), provider: newFbProvider, assigneeId: assigneeId(newFbAssignee), status: "กำลังแก้ไข", result: newFbResult.trim() || "อยู่ระหว่างปรับแก้ไข", meetingId: selectedMeeting?.id || "", dueDate: toISODate(taskDueDate), priority: "สูง" }) });
-      await refreshWorkItems(); setNewFbTopic(""); setNewFbResult(""); setNewFbMeetingId(""); setNewFbMeetingLabel("ไม่ได้มาจากการประชุม"); closeFeedbackModal();
-    }, "ไม่สามารถเพิ่ม Feedback ได้");
-  };
-
-  const handleDeleteFeedback = (feedback: FeedbackItem) => {
-    void runMutation(async () => {
-      if (!backendProjectId) return;
-      await apiFetch<void>(`/api/projects/${encodeURIComponent(backendProjectId)}/feedback/${encodeURIComponent(feedback.id)}`, { method: "DELETE" });
-      await refreshWorkItems();
-    }, "ไม่สามารถลบ Feedback ได้");
   };
 
   const openNewMeetingModal = () => {
@@ -727,7 +642,9 @@ export default function ProjectPage() {
 
   const filteredTasks = useMemo(() => {
     return tasks.filter((t) => {
-      const matchesSearch = t.title.toLowerCase().includes(searchQuery.toLowerCase()) || t.assignee.toLowerCase().includes(searchQuery.toLowerCase());
+      const query = searchQuery.toLowerCase();
+      const matchesSearch = [t.title, t.expectedResult, t.source, t.provider, t.assignee]
+        .some((value) => value.toLowerCase().includes(query));
       const matchesStatus = taskFilterStatus === "all" ? true : t.status === taskFilterStatus;
       return matchesSearch && matchesStatus;
     });
@@ -778,11 +695,8 @@ export default function ProjectPage() {
               </div>
 
               <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-                <button onClick={() => setIsAddTaskModalOpen(true)} className="btn-banner">
-                  <Plus className="w-4 h-4" /> เพิ่มงาน
-                </button>
-                <button onClick={openNewFeedbackModal} className="btn-banner-outline">
-                  <Plus className="w-4 h-4" /> เพิ่ม Feedback
+                <button onClick={openNewTaskModal} className="btn-banner">
+                  <Plus className="w-4 h-4" /> เพิ่มงาน / รายการปรับแก้
                 </button>
                 <button onClick={openNewMeetingModal} className="btn-banner-outline">
                   <Plus className="w-4 h-4" /> บันทึกประชุม
@@ -792,25 +706,38 @@ export default function ProjectPage() {
 
             {/* Quick Metrics Bar */}
             <div className="project-quick-stats">
-              <div className="stat-box">
-                <div className="stat-box-label">ความคืบหน้าโครงการ</div>
-                <div className="stat-box-value">{progressPercent}%</div>
+              <div className="stat-box stat-box-progress">
+                <div className="stat-box-content">
+                  <div className="stat-box-label">ความคืบหน้า</div>
+                  <div className="stat-box-value">{progressPercent}<span>%</span></div>
+                  <span className="stat-progress-track" aria-hidden="true">
+                    <span style={{ width: `${progressPercent}%` }} />
+                  </span>
+                </div>
               </div>
               <div className="stat-box">
-                <div className="stat-box-label">งานกำลังทำ</div>
-                <div className="stat-box-value">{inProgressTasks} <span style={{ fontSize: "13px", fontWeight: 600 }}>งาน</span></div>
+                <div className="stat-box-content">
+                  <div className="stat-box-label">กำลังทำ</div>
+                  <div className="stat-box-value">{inProgressTasks}<span>งาน</span></div>
+                </div>
               </div>
               <div className="stat-box">
-                <div className="stat-box-label">งานเสร็จแล้ว</div>
-                <div className="stat-box-value">{completedTasks} <span style={{ fontSize: "13px", fontWeight: 600 }}>งาน</span></div>
+                <div className="stat-box-content">
+                  <div className="stat-box-label">เสร็จแล้ว</div>
+                  <div className="stat-box-value">{completedTasks}<span>งาน</span></div>
+                </div>
               </div>
               <div className="stat-box">
-                <div className="stat-box-label">Feedback ที่ยังไม่แก้</div>
-                <div className="stat-box-value">{pendingFeedback} <span style={{ fontSize: "13px", fontWeight: 600 }}>ข้อ</span></div>
+                <div className="stat-box-content">
+                  <div className="stat-box-label">รอดำเนินการ</div>
+                  <div className="stat-box-value">{pendingTasks}<span>รายการ</span></div>
+                </div>
               </div>
-              <div className="stat-box">
-                <div className="stat-box-label">ประชุมครั้งถัดไป</div>
-                <div className="stat-box-value" style={{ fontSize: "17px", paddingTop: "2px" }}>25 ก.ค. 2026</div>
+              <div className="stat-box stat-box-meeting">
+                <div className="stat-box-content">
+                  <div className="stat-box-label">ประชุมครั้งถัดไป</div>
+                  <div className="stat-box-value stat-box-date">25 ก.ค. 2026</div>
+                </div>
               </div>
             </div>
           </div>
@@ -827,11 +754,8 @@ export default function ProjectPage() {
           <button onClick={() => setActiveTab("meetings")} className={`sec-tab ${activeTab === "meetings" ? "active" : ""}`}>
             บันทึกการประชุม ({meetings.length})
           </button>
-          <button onClick={() => setActiveTab("feedback")} className={`sec-tab ${activeTab === "feedback" ? "active" : ""}`}>
-            Feedback & ปรับแก้ ({feedbackList.length})
-          </button>
           <button onClick={() => setActiveTab("tasks")} className={`sec-tab ${activeTab === "tasks" ? "active" : ""}`}>
-            แบ่งงานและติดตามสถานะ ({tasks.length})
+            งานและรายการปรับแก้ ({tasks.length})
           </button>
           <button onClick={() => setActiveTab("timeline")} className={`sec-tab ${activeTab === "timeline" ? "active" : ""}`}>
             Timeline ({timeline.length})
@@ -1089,13 +1013,16 @@ export default function ProjectPage() {
             </div>
           )}
 
-        {/* SECTION 2: TASKS & STATUS */}
+        {/* SECTION 2: WORK ITEMS */}
         {(activeTab === "all" || activeTab === "tasks") && (
           <div className="section-block task-section-block project-overview-tasks">
             <div className="section-header-bar">
-              <h2 className="section-header-title">แบ่งงานและติดตามสถานะ</h2>
+              <div>
+                <h2 className="section-header-title">งานและรายการปรับแก้</h2>
+                <p className="feedback-status-help">รวมงานจากทีม การประชุม และ Feedback ไว้ในตารางเดียว</p>
+              </div>
               <button onClick={openNewTaskModal} className="btn-navy" style={{ height: "34px" }}>
-                <Plus className="w-4 h-4" /> สร้างงานใหม่
+                <Plus className="w-4 h-4" /> เพิ่มรายการ
               </button>
             </div>
 
@@ -1122,11 +1049,12 @@ export default function ProjectPage() {
               <table className="ts-table">
                 <thead>
                   <tr>
-                    <th>ชื่องาน</th>
+                    <th>ชื่องาน / รายละเอียดงาน</th>
+                    <th>ที่มา</th>
+                    <th>ผู้ให้ / ผู้เสนอ</th>
                     <th>ผู้รับผิดชอบ</th>
-                    <th>วันครบกำหนด</th>
+                    <th>กำหนดส่ง</th>
                     <th>สถานะ</th>
-                    <th>ที่มาของงาน (Origin)</th>
                     <th aria-label="จัดการงาน" />
                   </tr>
                 </thead>
@@ -1136,9 +1064,13 @@ export default function ProjectPage() {
                       <td>
                         <div className="task-title">{t.title}</div>
                         <div className="task-expected-result">
-                          <span>ผลลัพธ์ที่จะได้:</span> {t.expectedResult || "ยังไม่ได้ระบุ"}
+                          {t.expectedResult || "ยังไม่ได้ระบุรายละเอียดงาน"}
                         </div>
                       </td>
+                      <td>
+                        <TaskSourceDisplay source={t.source || "ไม่ได้มาจากการประชุม"} />
+                      </td>
+                      <td>{t.provider || "—"}</td>
                       <td>{t.assignee}</td>
                       <td>
                         <button
@@ -1179,9 +1111,6 @@ export default function ProjectPage() {
                           status={t.status}
                           onChange={(newStatus) => handleStatusChange(t.id, newStatus)}
                         />
-                      </td>
-                      <td>
-                        <span className="source-tag">{t.source}</span>
                       </td>
                       <td className="task-actions-cell">
                         <div className="task-actions" style={{ zIndex: activeMenuTaskId === t.id ? 1000 : 20 }}>
@@ -1299,101 +1228,7 @@ export default function ProjectPage() {
           </div>
         )}
 
-        {/* SECTION 4: FEEDBACK & REVISIONS */}
-        {(activeTab === "all" || activeTab === "feedback") && (
-          <div className="section-block feedback-section-block project-overview-feedback">
-            <div className="section-header-bar">
-              <div>
-                <h2 className="section-header-title">เก็บ Feedback และสิ่งที่ต้องปรับแก้</h2>
-                <p className="feedback-status-help">สถานะจะแสดงตามงานที่เชื่อมโยง และเปลี่ยนได้ใน “แบ่งงานและติดตามสถานะ” เท่านั้น</p>
-              </div>
-              <button
-                type="button"
-                className="btn-navy"
-                style={{ padding: "6px 14px", fontSize: "12px", height: "auto" }}
-                onClick={openNewFeedbackModal}
-              >
-                <Plus className="w-3.5 h-3.5" /> เพิ่ม Feedback
-              </button>
-            </div>
-            <div className="section-body" style={{ padding: 0 }}>
-              <table className="ts-table">
-                <thead>
-                  <tr>
-                    <th>ชื่องาน</th>
-                    <th>ผู้ให้</th>
-                    <th>การประชุม / รอบ</th>
-                    <th>ผู้รับผิดชอบ</th>
-                    <th>ผลลัพธ์ที่จะได้</th>
-                    <th>สถานะ</th>
-                    <th aria-label="จัดการ Feedback" />
-                  </tr>
-                </thead>
-                <tbody>
-                  {feedbackList.map((f) => (
-                    <tr key={f.id}>
-                      <td style={{ fontWeight: 600 }}>{f.topic}</td>
-                      <td>{f.provider}</td>
-                      <td>
-                        <span className="feedback-round-title">{f.round.split(" — ")[0]}</span>
-                        {f.round.includes(" — ") && (
-                          <span className="feedback-round-date">{f.round.split(" — ").slice(1).join(" — ")}</span>
-                        )}
-                      </td>
-                      <td>{f.assignee}</td>
-                      <td style={{ fontSize: "12px", color: "#374151" }}>{f.result}</td>
-                      <td>
-                        <span className={`status-pill ${f.status === "แก้ไขแล้ว" ? "status-done" : "status-doing"}`}>
-                          {f.status}
-                        </span>
-                      </td>
-                      <td className="task-actions-cell">
-                        <div className="task-actions" style={{ zIndex: activeMenuFeedbackId === f.id ? 1000 : 20 }}>
-                          <button
-                            className="task-actions-trigger"
-                            type="button"
-                            aria-label={`จัดการ Feedback ${f.topic}`}
-                            aria-haspopup="menu"
-                            aria-expanded={activeMenuFeedbackId === f.id}
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              setActiveMenuFeedbackId((activeId) => activeId === f.id ? null : f.id);
-                            }}
-                          >
-                            <MoreHorizontal aria-hidden="true" />
-                          </button>
-
-                          {activeMenuFeedbackId === f.id && (
-                            <div className="task-actions-menu" role="menu" onClick={(event) => event.stopPropagation()}>
-                              <button type="button" role="menuitem" onClick={() => openEditFeedbackModal(f)}>
-                                <Edit aria-hidden="true" />
-                                <span>แก้ไข</span>
-                              </button>
-                              <button
-                                className="danger"
-                                type="button"
-                                role="menuitem"
-                                onClick={() => {
-                                  setDeletingFeedback(f);
-                                  setActiveMenuFeedbackId(null);
-                                }}
-                              >
-                                <Trash2 aria-hidden="true" />
-                                <span>ลบ</span>
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-        {/* SECTION 5: TIMELINE */}
+        {/* SECTION 4: TIMELINE */}
         {(activeTab === "all" || activeTab === "timeline") && (
           <div className="section-block project-overview-timeline" style={{ marginTop: "28px" }}>
             <div className="section-header-bar">
@@ -1420,7 +1255,7 @@ export default function ProjectPage() {
         <div className="modal-backdrop">
           <div className="modal-dialog">
             <div className="modal-title-bar">
-              <h3>{editingTask ? "แก้ไขงาน" : "เพิ่มงานใหม่"}</h3>
+              <h3>{editingTask ? "แก้ไขงาน / รายการปรับแก้" : "เพิ่มงาน / รายการปรับแก้"}</h3>
               <button onClick={closeTaskModal} style={{ border: "none", background: "none", cursor: "pointer" }}>
                 <X className="w-5 h-5" />
               </button>
@@ -1438,6 +1273,55 @@ export default function ProjectPage() {
                 />
               </div>
 
+              <div className="form-group">
+                <label className="form-label">รายละเอียดงาน</label>
+                <textarea
+                  rows={3}
+                  placeholder="อธิบายสิ่งที่ต้องทำและผลลัพธ์ที่ต้องการ"
+                  value={newTaskExpectedResult}
+                  onChange={(e) => setNewTaskExpectedResult(e.target.value)}
+                  className="form-input"
+                  style={{ height: "auto", minHeight: "84px", paddingTop: "10px", resize: "vertical" }}
+                />
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "20px" }}>
+                <div>
+                  <label className="form-label">ที่มา</label>
+                  <Combobox
+                    options={[
+                      "ไม่ได้มาจากการประชุม",
+                      ...meetings.map((meeting) => `${meeting.title} — ${meeting.date}`),
+                    ]}
+                    value={newTaskSource}
+                    onChange={(value) => {
+                      setNewTaskSource(value);
+                      const meeting = meetings.find((item) => `${item.title} — ${item.date}` === value);
+                      setNewTaskMeetingId(meeting?.id || "");
+                    }}
+                    placeholder="เลือกบันทึกการประชุม..."
+                    showAllOptionsOnOpen
+                    showCheckmark={false}
+                    optionSecondarySeparator=" — "
+                    allowCustomValue={false}
+                  />
+                </div>
+
+                <div>
+                  <label className="form-label">ผู้ให้ / ผู้เสนอ *</label>
+                  <Combobox
+                    options={[...new Set([...members.map((member) => member.name), "อาจารย์ที่ปรึกษา", "ลูกค้า/ผู้ใช้งาน"])]}
+                    value={newTaskProvider}
+                    onChange={setNewTaskProvider}
+                    placeholder="เลือกสมาชิก หรือพิมพ์ชื่อ..."
+                    showAllOptionsOnOpen
+                    showCheckmark={false}
+                    allowCustomValue
+                  />
+                  <p className="form-field-help">เลือกจากสมาชิก หรือพิมพ์ชื่อบุคคลภายนอกเพิ่มได้</p>
+                </div>
+              </div>
+
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "20px" }}>
                 <div>
                   <label className="form-label">ผู้รับผิดชอบ</label>
@@ -1446,11 +1330,12 @@ export default function ProjectPage() {
                     value={newTaskAssignee}
                     onChange={(val) => setNewTaskAssignee(val)}
                     placeholder="เลือกผู้รับผิดชอบ..."
+                    showAllOptionsOnOpen
                   />
                 </div>
 
                 <div style={{ position: "relative" }}>
-                  <label className="form-label">วันกำหนดส่ง (Due Date)</label>
+                  <label className="form-label">กำหนดส่ง</label>
                   <button
                     type="button"
                     onClick={() => setShowTaskCalendar(!showTaskCalendar)}
@@ -1489,25 +1374,17 @@ export default function ProjectPage() {
               </div>
 
               <div className="form-group">
-                <label className="form-label">ผลลัพธ์ที่จะได้</label>
-                <input
-                  type="text"
-                  placeholder="เช่น หน้า Monitor ที่อ่านง่ายและกรองข้อมูลได้"
-                  value={newTaskExpectedResult}
-                  onChange={(e) => setNewTaskExpectedResult(e.target.value)}
+                <label className="form-label">สถานะ</label>
+                <select
+                  value={newTaskStatus}
+                  onChange={(e) => setNewTaskStatus(e.target.value as TaskStatus)}
                   className="form-input"
-                />
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">ที่มาของงาน (Origin)</label>
-                <input
-                  type="text"
-                  placeholder="เช่น Feedback จากการประชุมครั้งที่ 2"
-                  value={newTaskSource}
-                  onChange={(e) => setNewTaskSource(e.target.value)}
-                  className="form-input"
-                />
+                >
+                  <option value="ยังไม่เริ่ม">ยังไม่เริ่ม</option>
+                  <option value="กำลังทำ">กำลังทำ</option>
+                  <option value="รอตรวจ">รอตรวจ</option>
+                  <option value="เสร็จแล้ว">เสร็จแล้ว</option>
+                </select>
               </div>
 
               <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px", marginTop: "18px" }}>
@@ -1523,95 +1400,7 @@ export default function ProjectPage() {
         </div>
       )}
 
-      {/* MODAL 2: Add Feedback */}
-      {isAddFeedbackModalOpen && (
-        <div className="modal-backdrop">
-          <div className="modal-dialog">
-            <div className="modal-title-bar">
-              <h3>{editingFeedback ? "แก้ไข Feedback" : "เพิ่ม Feedback ใหม่"}</h3>
-              <button onClick={closeFeedbackModal} style={{ border: "none", background: "none", cursor: "pointer" }}>
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <form onSubmit={handleSaveFeedback}>
-              <div className="form-group">
-                <label className="form-label">ชื่องาน *</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="เช่น หน้า Monitor ดูข้อมูลยาก"
-                  value={newFbTopic}
-                  onChange={(e) => setNewFbTopic(e.target.value)}
-                  className="form-input"
-                />
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">อ้างอิงจากบันทึกการประชุม</label>
-                <Combobox
-                  options={[
-                    "ไม่ได้มาจากการประชุม",
-                    ...meetings.map((meeting) => `${meeting.title} — ${meeting.date}`),
-                  ]}
-                  value={newFbMeetingLabel}
-                  onChange={(value) => {
-                    setNewFbMeetingLabel(value);
-                    const meeting = meetings.find((item) => `${item.title} — ${item.date}` === value);
-                    setNewFbMeetingId(meeting?.id || "");
-                  }}
-                  placeholder="เลือกบันทึกการประชุม..."
-                  showAllOptionsOnOpen
-                  showCheckmark={false}
-                  optionSecondarySeparator=" — "
-                />
-                <p className="feedback-meeting-help">
-                  รายการที่เลือกจะแสดงในคอลัมน์ “รอบ” และที่มาของงานที่ระบบสร้าง
-                </p>
-              </div>
-
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "20px" }}>
-                <div>
-                  <label className="form-label">ผู้ให้ Feedback</label>
-                  <input type="text" value={newFbProvider} onChange={(e) => setNewFbProvider(e.target.value)} className="form-input" />
-                </div>
-                <div>
-                  <label className="form-label">ผู้รับผิดชอบหลัก</label>
-                  <Combobox
-                    options={members.map((m) => m.name)}
-                    value={newFbAssignee}
-                    onChange={(val) => setNewFbAssignee(val)}
-                    placeholder="เลือกผู้รับผิดชอบ..."
-                    showAllOptionsOnOpen
-                    showCheckmark={false}
-                  />
-                </div>
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">แนวทางผลลัพธ์ที่จะแก้ไข</label>
-                <input
-                  type="text"
-                  placeholder="เช่น ปรับเป็น Table View และเพิ่ม Filter"
-                  value={newFbResult}
-                  onChange={(e) => setNewFbResult(e.target.value)}
-                  className="form-input"
-                />
-              </div>
-
-              <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px", marginTop: "18px" }}>
-                <button type="button" onClick={closeFeedbackModal} className="btn-outline">
-                  ยกเลิก
-                </button>
-                <button type="submit" className="btn-navy">
-                  {editingFeedback ? "บันทึกการแก้ไข" : "บันทึก Feedback"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL 3: Add Meeting */}
+      {/* MODAL 2: Add Meeting */}
       {isAddMeetingModalOpen && (
         <div className="modal-backdrop">
           <div className="modal-dialog">
@@ -1855,26 +1644,6 @@ export default function ProjectPage() {
           const pendingAction = pendingEditActionRef.current;
           clearEditConfirmation();
           pendingAction?.();
-        }}
-      />
-
-      {/* Delete Feedback Confirmation Dialog */}
-      <AlertDialogSmall
-        open={!!deletingFeedback}
-        onOpenChange={(open) => {
-          if (!open) setDeletingFeedback(null);
-        }}
-        trigger={null}
-        title="ลบ Feedback นี้?"
-        description={`การลบ "${deletingFeedback?.topic || ""}" จะลบงานที่เชื่อมอยู่ด้วย คุณต้องการดำเนินการต่อหรือไม่?`}
-        cancelText="ยกเลิก"
-        actionText="ลบ Feedback"
-        variant="destructive"
-        onAction={() => {
-          if (deletingFeedback) {
-            handleDeleteFeedback(deletingFeedback);
-            setDeletingFeedback(null);
-          }
         }}
       />
 

@@ -16,6 +16,7 @@ type Task struct {
 	Status         string         `json:"status"`
 	Priority       string         `json:"priority"`
 	Source         string         `json:"source"`
+	Provider       string         `json:"provider"`
 	ExpectedResult string         `json:"expectedResult"`
 	MeetingID      *string        `json:"meetingId"`
 	FeedbackID     *string        `json:"feedbackId"`

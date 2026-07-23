@@ -14,6 +14,7 @@ export interface CustomComboboxProps {
   showAllOptionsOnOpen?: boolean;
   showCheckmark?: boolean;
   optionSecondarySeparator?: string;
+  allowCustomValue?: boolean;
 }
 
 export function Combobox({
@@ -26,6 +27,7 @@ export function Combobox({
   showAllOptionsOnOpen = false,
   showCheckmark = true,
   optionSecondarySeparator,
+  allowCustomValue = true,
 }: CustomComboboxProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState(value);
@@ -97,7 +99,9 @@ export function Combobox({
         <input
           type="text"
           value={query}
+          readOnly={!allowCustomValue}
           onChange={(e) => {
+            if (!allowCustomValue) return;
             setIsFiltering(true);
             setQuery(e.target.value);
             if (onChange) onChange(e.target.value);
@@ -159,7 +163,7 @@ export function Combobox({
                 color: "#94a3b8",
               }}
             >
-              ไม่พบรายการที่ค้นหา
+              {allowCustomValue ? "ใช้ข้อความที่พิมพ์เป็นรายการใหม่ได้" : "ไม่พบรายการที่ค้นหา"}
             </div>
           ) : (
             filteredOptions.map((opt) => {

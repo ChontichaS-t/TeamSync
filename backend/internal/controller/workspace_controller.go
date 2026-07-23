@@ -17,6 +17,7 @@ type taskRequest struct {
 	Status         string `json:"status"`
 	Priority       string `json:"priority"`
 	Source         string `json:"source"`
+	Provider       string `json:"provider"`
 	ExpectedResult string `json:"expectedResult"`
 	MeetingID      string `json:"meetingId"`
 }
@@ -88,7 +89,7 @@ func writeWorkspaceError(w http.ResponseWriter, operation string, err error) {
 }
 
 func taskInput(value taskRequest) service.TaskInput {
-	return service.TaskInput{Title: value.Title, AssigneeID: value.AssigneeID, DueDate: value.DueDate, Status: value.Status, Priority: value.Priority, Source: value.Source, ExpectedResult: value.ExpectedResult, MeetingID: value.MeetingID}
+	return service.TaskInput{Title: value.Title, AssigneeID: value.AssigneeID, DueDate: value.DueDate, Status: value.Status, Priority: value.Priority, Source: value.Source, Provider: value.Provider, ExpectedResult: value.ExpectedResult, MeetingID: value.MeetingID}
 }
 func meetingInput(value meetingRequest) service.MeetingInput {
 	return service.MeetingInput{Title: value.Title, Date: value.Date, Summary: value.Summary, Agreed: value.Agreed}

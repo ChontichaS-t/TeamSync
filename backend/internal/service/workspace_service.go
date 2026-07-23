@@ -22,6 +22,7 @@ type TaskInput struct {
 	Status         string
 	Priority       string
 	Source         string
+	Provider       string
 	ExpectedResult string
 	MeetingID      string
 }
@@ -196,6 +197,7 @@ func (s *WorkspaceService) ListActivity(ctx context.Context, userID, projectID s
 func normalizeTaskInput(input *TaskInput) bool {
 	input.Title = strings.TrimSpace(input.Title)
 	input.Source = strings.TrimSpace(input.Source)
+	input.Provider = strings.TrimSpace(input.Provider)
 	input.ExpectedResult = strings.TrimSpace(input.ExpectedResult)
 	if input.Status == "" {
 		input.Status = "ยังไม่เริ่ม"
@@ -203,7 +205,7 @@ func normalizeTaskInput(input *TaskInput) bool {
 	if input.Priority == "" {
 		input.Priority = "ปานกลาง"
 	}
-	if !validText(input.Title, 1, 200) || !validText(input.Source, 0, 500) || !validText(input.ExpectedResult, 0, 1000) || !oneOf(input.Status, "ยังไม่เริ่ม", "กำลังทำ", "รอตรวจ", "เสร็จแล้ว") || !oneOf(input.Priority, "ต่ำ", "ปานกลาง", "สูง") {
+	if !validText(input.Title, 1, 200) || !validText(input.Source, 0, 500) || !validText(input.Provider, 0, 200) || !validText(input.ExpectedResult, 0, 1000) || !oneOf(input.Status, "ยังไม่เริ่ม", "กำลังทำ", "รอตรวจ", "เสร็จแล้ว") || !oneOf(input.Priority, "ต่ำ", "ปานกลาง", "สูง") {
 		return false
 	}
 	if _, err := time.Parse("2006-01-02", input.DueDate); err != nil {

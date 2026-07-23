@@ -76,13 +76,13 @@ func logActivity(ctx context.Context, tx pgx.Tx, projectID, actorID, eventType, 
 const taskSelect = `
 	SELECT task.id::text, task.project_id::text, task.title,
 	       account.id::text, account.display_name, task.due_date::text, task.status, task.priority,
-	       task.source, task.expected_result, task.meeting_id::text, task.feedback_id::text, task.created_at, task.updated_at
+	       task.source, task.provider, task.expected_result, task.meeting_id::text, task.feedback_id::text, task.created_at, task.updated_at
 	FROM tasks task LEFT JOIN users account ON account.id=task.assignee_id`
 
 func scanTask(row pgx.Row) (pages.Task, error) {
 	var task pages.Task
 	var assigneeID, assigneeName, meetingID, feedbackID pgtype.Text
-	err := row.Scan(&task.ID, &task.ProjectID, &task.Title, &assigneeID, &assigneeName, &task.DueDate, &task.Status, &task.Priority, &task.Source, &task.ExpectedResult, &meetingID, &feedbackID, &task.CreatedAt, &task.UpdatedAt)
+	err := row.Scan(&task.ID, &task.ProjectID, &task.Title, &assigneeID, &assigneeName, &task.DueDate, &task.Status, &task.Priority, &task.Source, &task.Provider, &task.ExpectedResult, &meetingID, &feedbackID, &task.CreatedAt, &task.UpdatedAt)
 	if err != nil {
 		return pages.Task{}, err
 	}
@@ -141,7 +141,7 @@ func (r *WorkspaceRepository) CreateTask(ctx context.Context, userID, projectID 
 		return pages.Task{}, err
 	}
 	var id string
-	err = tx.QueryRow(ctx, `INSERT INTO tasks(project_id,title,assignee_id,due_date,status,priority,source,expected_result,meeting_id,created_by) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id`, projectID, input.Title, nullableUUID(input.AssigneeID), input.DueDate, input.Status, input.Priority, input.Source, input.ExpectedResult, nullableUUID(input.MeetingID), userID).Scan(&id)
+	err = tx.QueryRow(ctx, `INSERT INTO tasks(project_id,title,assignee_id,due_date,status,priority,source,provider,expected_result,meeting_id,created_by) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING id`, projectID, input.Title, nullableUUID(input.AssigneeID), input.DueDate, input.Status, input.Priority, input.Source, input.Provider, input.ExpectedResult, nullableUUID(input.MeetingID), userID).Scan(&id)
 	if err != nil {
 		return pages.Task{}, fmt.Errorf("create task: %w", err)
 	}
@@ -170,7 +170,7 @@ func (r *WorkspaceRepository) UpdateTask(ctx context.Context, userID, projectID,
 	if err = r.validateReferences(ctx, tx, projectID, input.AssigneeID, input.MeetingID); err != nil {
 		return pages.Task{}, err
 	}
-	command, err := tx.Exec(ctx, `UPDATE tasks SET title=$3,assignee_id=$4,due_date=$5,status=$6,priority=$7,source=$8,expected_result=$9,meeting_id=$10,updated_at=now() WHERE project_id=$1 AND id=$2`, projectID, taskID, input.Title, nullableUUID(input.AssigneeID), input.DueDate, input.Status, input.Priority, input.Source, input.ExpectedResult, nullableUUID(input.MeetingID))
+	command, err := tx.Exec(ctx, `UPDATE tasks SET title=$3,assignee_id=$4,due_date=$5,status=$6,priority=$7,source=$8,provider=$9,expected_result=$10,meeting_id=$11,updated_at=now() WHERE project_id=$1 AND id=$2`, projectID, taskID, input.Title, nullableUUID(input.AssigneeID), input.DueDate, input.Status, input.Priority, input.Source, input.Provider, input.ExpectedResult, nullableUUID(input.MeetingID))
 	if err != nil {
 		return pages.Task{}, fmt.Errorf("update task: %w", err)
 	}
@@ -183,10 +183,11 @@ func (r *WorkspaceRepository) UpdateTask(ctx context.Context, userID, projectID,
 	}
 	if _, err = tx.Exec(ctx, `
 		UPDATE feedback
-		SET status=$3, result=$4, updated_at=now()
+		SET topic=$3, provider=$4, assignee_id=$5, meeting_id=$6,
+		    status=$7, result=$8, updated_at=now()
 		WHERE project_id=$1
 		  AND id=(SELECT feedback_id FROM tasks WHERE project_id=$1 AND id=$2)
-	`, projectID, taskID, feedbackStatus, input.ExpectedResult); err != nil {
+	`, projectID, taskID, input.Title, input.Provider, nullableUUID(input.AssigneeID), nullableUUID(input.MeetingID), feedbackStatus, input.ExpectedResult); err != nil {
 		return pages.Task{}, err
 	}
 	if err = logActivity(ctx, tx, projectID, userID, "task.updated", fmt.Sprintf("แก้ไขงาน '%s'", input.Title)); err != nil {
@@ -431,7 +432,7 @@ func (r *WorkspaceRepository) CreateFeedback(ctx context.Context, userID, projec
 	if err != nil {
 		return pages.Feedback{}, err
 	}
-	_, err = tx.Exec(ctx, `INSERT INTO tasks(project_id,meeting_id,feedback_id,title,assignee_id,due_date,status,priority,source,expected_result,created_by) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`, projectID, nullableUUID(input.MeetingID), id, input.Topic, nullableUUID(input.AssigneeID), input.DueDate, feedbackTaskStatus(input.Status), input.Priority, source, input.Result, userID)
+	_, err = tx.Exec(ctx, `INSERT INTO tasks(project_id,meeting_id,feedback_id,title,assignee_id,due_date,status,priority,source,provider,expected_result,created_by) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`, projectID, nullableUUID(input.MeetingID), id, input.Topic, nullableUUID(input.AssigneeID), input.DueDate, feedbackTaskStatus(input.Status), input.Priority, source, input.Provider, input.Result, userID)
 	if err != nil {
 		return pages.Feedback{}, err
 	}
@@ -470,7 +471,7 @@ func (r *WorkspaceRepository) UpdateFeedback(ctx context.Context, userID, projec
 	if err != nil {
 		return pages.Feedback{}, err
 	}
-	_, err = tx.Exec(ctx, `UPDATE tasks SET meeting_id=$3,title=$4,assignee_id=$5,due_date=$6,priority=$7,source=$8,expected_result=$9,updated_at=now() WHERE project_id=$1 AND feedback_id=$2`, projectID, feedbackID, nullableUUID(input.MeetingID), input.Topic, nullableUUID(input.AssigneeID), input.DueDate, input.Priority, source, input.Result)
+	_, err = tx.Exec(ctx, `UPDATE tasks SET meeting_id=$3,title=$4,assignee_id=$5,due_date=$6,priority=$7,source=$8,provider=$9,expected_result=$10,updated_at=now() WHERE project_id=$1 AND feedback_id=$2`, projectID, feedbackID, nullableUUID(input.MeetingID), input.Topic, nullableUUID(input.AssigneeID), input.DueDate, input.Priority, source, input.Provider, input.Result)
 	if err != nil {
 		return pages.Feedback{}, err
 	}
