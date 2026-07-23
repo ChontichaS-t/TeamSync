@@ -11,13 +11,14 @@ import (
 )
 
 type taskRequest struct {
-	Title      string `json:"title"`
-	AssigneeID string `json:"assigneeId"`
-	DueDate    string `json:"dueDate"`
-	Status     string `json:"status"`
-	Priority   string `json:"priority"`
-	Source     string `json:"source"`
-	MeetingID  string `json:"meetingId"`
+	Title          string `json:"title"`
+	AssigneeID     string `json:"assigneeId"`
+	DueDate        string `json:"dueDate"`
+	Status         string `json:"status"`
+	Priority       string `json:"priority"`
+	Source         string `json:"source"`
+	ExpectedResult string `json:"expectedResult"`
+	MeetingID      string `json:"meetingId"`
 }
 type meetingRequest struct {
 	Title   string   `json:"title"`
@@ -87,7 +88,7 @@ func writeWorkspaceError(w http.ResponseWriter, operation string, err error) {
 }
 
 func taskInput(value taskRequest) service.TaskInput {
-	return service.TaskInput{Title: value.Title, AssigneeID: value.AssigneeID, DueDate: value.DueDate, Status: value.Status, Priority: value.Priority, Source: value.Source, MeetingID: value.MeetingID}
+	return service.TaskInput{Title: value.Title, AssigneeID: value.AssigneeID, DueDate: value.DueDate, Status: value.Status, Priority: value.Priority, Source: value.Source, ExpectedResult: value.ExpectedResult, MeetingID: value.MeetingID}
 }
 func meetingInput(value meetingRequest) service.MeetingInput {
 	return service.MeetingInput{Title: value.Title, Date: value.Date, Summary: value.Summary, Agreed: value.Agreed}

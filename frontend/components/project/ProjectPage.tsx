@@ -22,6 +22,7 @@ export interface TaskItem {
   status: TaskStatus;
   priority: "ต่ำ" | "ปานกลาง" | "สูง";
   source: string; // ที่มาของงาน (e.g. Feedback จากการประชุมครั้งที่ 2)
+  expectedResult: string;
   meetingId?: string;
   feedbackId?: string;
 }
@@ -63,7 +64,7 @@ export interface TimelineItem {
 }
 
 type ApiPerson = { id: string; displayName: string } | null;
-type ApiTask = { id: string; title: string; assignee: ApiPerson; dueDate: string; status: TaskStatus; priority: "ต่ำ" | "ปานกลาง" | "สูง"; source: string; meetingId: string | null; feedbackId: string | null };
+type ApiTask = { id: string; title: string; assignee: ApiPerson; dueDate: string; status: TaskStatus; priority: "ต่ำ" | "ปานกลาง" | "สูง"; source: string; expectedResult: string; meetingId: string | null; feedbackId: string | null };
 type ApiMeeting = { id: string; title: string; date: string; summary: string[]; agreed: string[] };
 type ApiFeedback = { id: string; topic: string; provider: string; assignee: ApiPerson; status: FeedbackStatus; result: string; meetingId: string | null; taskId?: string | null };
 
@@ -484,6 +485,7 @@ export default function ProjectPage() {
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [newTaskAssignee, setNewTaskAssignee] = useState("Chonticha");
   const [newTaskSource, setNewTaskSource] = useState("");
+  const [newTaskExpectedResult, setNewTaskExpectedResult] = useState("");
 
   const [newFbTopic, setNewFbTopic] = useState("");
   const [newFbProvider, setNewFbProvider] = useState("อาจารย์ที่ปรึกษา");
@@ -510,7 +512,7 @@ export default function ProjectPage() {
     void runMutation(async () => {
       await apiFetch<ApiTask>(`/api/projects/${encodeURIComponent(backendProjectId)}/tasks/${encodeURIComponent(id)}`, {
         method: "PUT",
-        body: JSON.stringify({ title: targetTask.title, assigneeId: assigneeId(targetTask.assignee), dueDate: toISODate(parseThaiDate(targetTask.dueDate)), status: newStatus, priority: targetTask.priority, source: targetTask.source, meetingId: targetTask.meetingId || "" }),
+        body: JSON.stringify({ title: targetTask.title, assigneeId: assigneeId(targetTask.assignee), dueDate: toISODate(parseThaiDate(targetTask.dueDate)), status: newStatus, priority: targetTask.priority, source: targetTask.source, expectedResult: targetTask.expectedResult, meetingId: targetTask.meetingId || "" }),
       });
       await refreshWorkItems();
     }, "ไม่สามารถเปลี่ยนสถานะงานได้");
@@ -521,7 +523,7 @@ export default function ProjectPage() {
     void runMutation(async () => {
       await apiFetch<ApiTask>(`/api/projects/${encodeURIComponent(backendProjectId)}/tasks/${encodeURIComponent(task.id)}`, {
         method: "PUT",
-        body: JSON.stringify({ title: task.title, assigneeId: assigneeId(task.assignee), dueDate: toISODate(dueDate), status: task.status, priority: task.priority, source: task.source, meetingId: task.meetingId || "" }),
+        body: JSON.stringify({ title: task.title, assigneeId: assigneeId(task.assignee), dueDate: toISODate(dueDate), status: task.status, priority: task.priority, source: task.source, expectedResult: task.expectedResult, meetingId: task.meetingId || "" }),
       });
       await refreshWorkItems();
     }, "ไม่สามารถแก้ไขวันส่งงานได้");
@@ -532,6 +534,7 @@ export default function ProjectPage() {
     setNewTaskTitle("");
     setNewTaskAssignee(members[0]?.name || "");
     setNewTaskSource("");
+    setNewTaskExpectedResult("");
     setTaskDueDate(new Date(2026, 6, 28));
     setShowTaskCalendar(false);
     setIsAddTaskModalOpen(true);
@@ -542,6 +545,7 @@ export default function ProjectPage() {
     setNewTaskTitle(task.title);
     setNewTaskAssignee(task.assignee);
     setNewTaskSource(task.source);
+    setNewTaskExpectedResult(task.expectedResult);
     setTaskDueDate(parseThaiDate(task.dueDate) || new Date());
     setShowTaskCalendar(false);
     setActiveMenuTaskId(null);
@@ -563,10 +567,11 @@ export default function ProjectPage() {
       const taskTitle = newTaskTitle.trim();
       const taskAssignee = newTaskAssignee;
       const taskSource = newTaskSource.trim() || "จากการประชุมทีม";
+      const taskExpectedResult = newTaskExpectedResult.trim();
       requestEditConfirmation("งาน", taskTitle, () => {
         void runMutation(async () => {
           if (!backendProjectId) return;
-          await apiFetch<ApiTask>(`/api/projects/${encodeURIComponent(backendProjectId)}/tasks/${encodeURIComponent(taskId)}`, { method: "PUT", body: JSON.stringify({ title: taskTitle, assigneeId: assigneeId(taskAssignee), dueDate: toISODate(taskDueDate), status: editingTask.status, priority: editingTask.priority, source: taskSource, meetingId: editingTask.meetingId || "" }) });
+          await apiFetch<ApiTask>(`/api/projects/${encodeURIComponent(backendProjectId)}/tasks/${encodeURIComponent(taskId)}`, { method: "PUT", body: JSON.stringify({ title: taskTitle, assigneeId: assigneeId(taskAssignee), dueDate: toISODate(taskDueDate), status: editingTask.status, priority: editingTask.priority, source: taskSource, expectedResult: taskExpectedResult, meetingId: editingTask.meetingId || "" }) });
           await refreshWorkItems();
           closeTaskModal();
         }, "ไม่สามารถแก้ไขงานได้");
@@ -576,9 +581,9 @@ export default function ProjectPage() {
 
     void runMutation(async () => {
       if (!backendProjectId) return;
-      await apiFetch<ApiTask>(`/api/projects/${encodeURIComponent(backendProjectId)}/tasks`, { method: "POST", body: JSON.stringify({ title: newTaskTitle.trim(), assigneeId: assigneeId(newTaskAssignee), dueDate: toISODate(taskDueDate), status: "กำลังทำ", priority: "ปานกลาง", source: newTaskSource.trim() || "จากการประชุมทีม", meetingId: "" }) });
+      await apiFetch<ApiTask>(`/api/projects/${encodeURIComponent(backendProjectId)}/tasks`, { method: "POST", body: JSON.stringify({ title: newTaskTitle.trim(), assigneeId: assigneeId(newTaskAssignee), dueDate: toISODate(taskDueDate), status: "กำลังทำ", priority: "ปานกลาง", source: newTaskSource.trim() || "จากการประชุมทีม", expectedResult: newTaskExpectedResult.trim(), meetingId: "" }) });
       await refreshWorkItems();
-      setNewTaskTitle(""); setNewTaskSource(""); closeTaskModal();
+      setNewTaskTitle(""); setNewTaskSource(""); setNewTaskExpectedResult(""); closeTaskModal();
     }, "ไม่สามารถเพิ่มงานได้");
   };
 
@@ -1128,7 +1133,12 @@ export default function ProjectPage() {
                 <tbody>
                   {filteredTasks.map((t) => (
                     <tr key={t.id}>
-                      <td style={{ fontWeight: 600 }}>{t.title}</td>
+                      <td>
+                        <div className="task-title">{t.title}</div>
+                        <div className="task-expected-result">
+                          <span>ผลลัพธ์ที่จะได้:</span> {t.expectedResult || "ยังไม่ได้ระบุ"}
+                        </div>
+                      </td>
                       <td>{t.assignee}</td>
                       <td>
                         <button
@@ -1293,7 +1303,10 @@ export default function ProjectPage() {
         {(activeTab === "all" || activeTab === "feedback") && (
           <div className="section-block feedback-section-block project-overview-feedback">
             <div className="section-header-bar">
-              <h2 className="section-header-title">เก็บ Feedback และสิ่งที่ต้องปรับแก้</h2>
+              <div>
+                <h2 className="section-header-title">เก็บ Feedback และสิ่งที่ต้องปรับแก้</h2>
+                <p className="feedback-status-help">สถานะจะแสดงตามงานที่เชื่อมโยง และเปลี่ยนได้ใน “แบ่งงานและติดตามสถานะ” เท่านั้น</p>
+              </div>
               <button
                 type="button"
                 className="btn-navy"
@@ -1312,6 +1325,7 @@ export default function ProjectPage() {
                     <th>การประชุม / รอบ</th>
                     <th>ผู้รับผิดชอบ</th>
                     <th>ผลลัพธ์ที่จะได้</th>
+                    <th>สถานะ</th>
                     <th aria-label="จัดการ Feedback" />
                   </tr>
                 </thead>
@@ -1328,6 +1342,11 @@ export default function ProjectPage() {
                       </td>
                       <td>{f.assignee}</td>
                       <td style={{ fontSize: "12px", color: "#374151" }}>{f.result}</td>
+                      <td>
+                        <span className={`status-pill ${f.status === "แก้ไขแล้ว" ? "status-done" : "status-doing"}`}>
+                          {f.status}
+                        </span>
+                      </td>
                       <td className="task-actions-cell">
                         <div className="task-actions" style={{ zIndex: activeMenuFeedbackId === f.id ? 1000 : 20 }}>
                           <button
@@ -1467,6 +1486,17 @@ export default function ProjectPage() {
                     </div>
                   )}
                 </div>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">ผลลัพธ์ที่จะได้</label>
+                <input
+                  type="text"
+                  placeholder="เช่น หน้า Monitor ที่อ่านง่ายและกรองข้อมูลได้"
+                  value={newTaskExpectedResult}
+                  onChange={(e) => setNewTaskExpectedResult(e.target.value)}
+                  className="form-input"
+                />
               </div>
 
               <div className="form-group">

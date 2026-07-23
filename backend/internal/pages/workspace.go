@@ -8,18 +8,19 @@ type MemberSummary struct {
 }
 
 type Task struct {
-	ID         string         `json:"id"`
-	ProjectID  string         `json:"projectId"`
-	Title      string         `json:"title"`
-	Assignee   *MemberSummary `json:"assignee"`
-	DueDate    string         `json:"dueDate"`
-	Status     string         `json:"status"`
-	Priority   string         `json:"priority"`
-	Source     string         `json:"source"`
-	MeetingID  *string        `json:"meetingId"`
-	FeedbackID *string        `json:"feedbackId"`
-	CreatedAt  time.Time      `json:"createdAt"`
-	UpdatedAt  time.Time      `json:"updatedAt"`
+	ID             string         `json:"id"`
+	ProjectID      string         `json:"projectId"`
+	Title          string         `json:"title"`
+	Assignee       *MemberSummary `json:"assignee"`
+	DueDate        string         `json:"dueDate"`
+	Status         string         `json:"status"`
+	Priority       string         `json:"priority"`
+	Source         string         `json:"source"`
+	ExpectedResult string         `json:"expectedResult"`
+	MeetingID      *string        `json:"meetingId"`
+	FeedbackID     *string        `json:"feedbackId"`
+	CreatedAt      time.Time      `json:"createdAt"`
+	UpdatedAt      time.Time      `json:"updatedAt"`
 }
 
 type Meeting struct {

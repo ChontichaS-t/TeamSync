@@ -70,6 +70,7 @@ Tokens are random 256-bit values. Only SHA-256 hashes are stored. Invitations ex
   "assigneeId": "user-uuid-or-empty",
   "dueDate": "2026-07-25",
   "status": "กำลังทำ",
+  "expectedResult": "หน้า Monitor ที่อ่านง่ายและกรองข้อมูลได้",
   "priority": "สูง",
   "source": "จากการประชุมทีม",
   "meetingId": "meeting-uuid-or-empty"
@@ -78,6 +79,8 @@ Tokens are random 256-bit values. Only SHA-256 hashes are stored. Invitations ex
 
 Status: `ยังไม่เริ่ม`, `กำลังทำ`, `รอตรวจ`, `เสร็จแล้ว`  
 Priority: `ต่ำ`, `ปานกลาง`, `สูง`
+
+สถานะของ Feedback ที่เชื่อมโยงจะอัปเดตตามสถานะงานนี้ และแก้ผ่าน Task API เท่านั้น
 
 ## Meetings
 
