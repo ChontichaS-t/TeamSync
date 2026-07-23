@@ -3,7 +3,7 @@
 import { AddProjectModal, NewProjectData } from "@/components/global/AddProjectModal";
 import { AlertDialogSmall } from "@/components/global/AlertDialogSmall";
 import { UserProfileMenu } from "@/components/global/UserProfileMenu";
-import { CalendarDays, Edit3, FolderKanban, MoreHorizontal, Plus, Search, Trash2 } from "lucide-react";
+import { CalendarDays, Edit3, FolderKanban, MoreHorizontal, Plus, Search, Trash2, X } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -170,7 +170,26 @@ export default function HomePage() {
       </nav>
 
       <section className="home-workspace" aria-labelledby="home-title">
-        {apiError && <p role="alert" style={{ color: "#b91c1c", marginBottom: 12 }}>{apiError}</p>}
+        {apiError && (
+          <div className="home-api-alert" role="alert">
+            <span className="home-api-alert-copy">
+              <strong>
+                {apiError.includes("ไม่มีสิทธิ์")
+                  ? "ไม่สามารถดำเนินการได้"
+                  : "เกิดข้อผิดพลาด"}
+              </strong>
+              <span>{apiError}</span>
+            </span>
+            <button
+              type="button"
+              className="home-api-alert-close"
+              aria-label="ปิดข้อความแจ้งเตือน"
+              onClick={() => setApiError("")}
+            >
+              <X aria-hidden="true" />
+            </button>
+          </div>
+        )}
         <header className="home-heading">
           <div>
             <p className="home-eyebrow">Welcome, {user.displayName || "Team member"}</p>
