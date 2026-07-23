@@ -27,6 +27,11 @@ type ProjectItem = {
   role?: "owner" | "admin" | "member";
 };
 
+type PendingProjectEdit = {
+  project: ProjectItem;
+  data: NewProjectData;
+};
+
 export default function HomePage() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
@@ -38,6 +43,7 @@ export default function HomePage() {
   const [apiError, setApiError] = useState("");
   const [isAddProjectModalOpen, setIsAddProjectModalOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<ProjectItem | null>(null);
+  const [pendingProjectEdit, setPendingProjectEdit] = useState<PendingProjectEdit | null>(null);
   const [activeMenuProjectId, setActiveMenuProjectId] = useState<number | string | null>(null);
   const [deletingProject, setDeletingProject] = useState<ProjectItem | null>(null);
 
@@ -108,8 +114,7 @@ export default function HomePage() {
     return () => controller.abort();
   }, [router]);
 
-  // Create or Update Project
-  const handleSaveProject = async (projectData: NewProjectData) => {
+  const persistProject = async (projectData: NewProjectData, projectToEdit: ProjectItem | null) => {
     setApiError("");
     try {
       const payload = JSON.stringify({
@@ -121,17 +126,26 @@ export default function HomePage() {
         progress: projectData.progress || 0,
       });
       const saved = await apiFetch<Omit<ProjectItem, "members">>(
-        editingProject ? `/api/projects/${encodeURIComponent(String(editingProject.id))}` : "/api/projects",
-        { method: editingProject ? "PUT" : "POST", body: payload },
+        projectToEdit ? `/api/projects/${encodeURIComponent(String(projectToEdit.id))}` : "/api/projects",
+        { method: projectToEdit ? "PUT" : "POST", body: payload },
       );
-      const next = { ...saved, members: editingProject?.members || ["/cv1.png"] };
-      setProjects((current) => editingProject
-        ? current.map((project) => project.id === editingProject.id ? next : project)
+      const next = { ...saved, members: projectToEdit?.members || ["/cv1.png"] };
+      setProjects((current) => projectToEdit
+        ? current.map((project) => project.id === projectToEdit.id ? next : project)
         : [next, ...current]);
       setEditingProject(null);
     } catch (error) {
       setApiError(error instanceof Error ? error.message : "ไม่สามารถบันทึกโปรเจกต์ได้");
     }
+  };
+
+  // New projects are created immediately. Editing an existing project requires confirmation.
+  const handleSaveProject = (projectData: NewProjectData) => {
+    if (editingProject) {
+      setPendingProjectEdit({ project: editingProject, data: projectData });
+      return;
+    }
+    void persistProject(projectData, null);
   };
 
   // Confirm Delete Project
@@ -358,6 +372,24 @@ export default function HomePage() {
               }
             : null
         }
+      />
+
+      {/* Edit Confirmation Modal using the same shared card as other pages */}
+      <AlertDialogSmall
+        open={Boolean(pendingProjectEdit)}
+        onOpenChange={(open) => {
+          if (!open) setPendingProjectEdit(null);
+        }}
+        title="ยืนยันการแก้ไขโปรเจกต์"
+        description={`คุณต้องการบันทึกการแก้ไขโปรเจกต์ "${pendingProjectEdit?.project.title || ""}" ใช่หรือไม่?`}
+        cancelText="ยกเลิก"
+        actionText="ยืนยันการแก้ไข"
+        onAction={() => {
+          if (!pendingProjectEdit) return;
+          const pending = pendingProjectEdit;
+          setPendingProjectEdit(null);
+          void persistProject(pending.data, pending.project);
+        }}
       />
 
       {/* Delete Confirmation Modal using shared AlertDialogSmall */}

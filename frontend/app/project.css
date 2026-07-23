@@ -915,6 +915,8 @@
 .member-profile-modal {
   border: 1px solid #e2e8f0;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
 }
 
 .member-profile-close {
@@ -957,6 +959,22 @@
 .member-profile-close:focus-visible {
   outline: 3px solid var(--theme-primary-shadow, rgba(23, 33, 30, 0.2));
   outline-offset: 2px;
+}
+
+.member-project-role-help {
+  margin: 6px 2px 0;
+  color: #64748b;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.member-access-badge {
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: var(--member-role-bg, #f0f4f8);
+  color: var(--member-role-color, #4e6178);
+  font-size: 10px;
+  font-weight: 700;
 }
 
 .form-field-help {
@@ -1454,6 +1472,15 @@ textarea.form-input {
 .dark .member-profile-close:hover {
   background: #334155;
   color: #f8fafc;
+}
+
+.dark .member-project-role-help {
+  color: #94a3b8;
+}
+
+.dark .member-access-badge {
+  background: var(--member-role-bg, #0f172a);
+  color: var(--member-role-color, #94a3b8);
 }
 
 .dark .member-avatar-option:hover {

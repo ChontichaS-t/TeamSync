@@ -13,6 +13,7 @@ import { InviteProjectModal } from "@/components/project/InviteProjectModal";
 import { apiFetch } from "@/lib/api";
 
 export type TaskStatus = "ยังไม่เริ่ม" | "กำลังทำ" | "รอตรวจ" | "เสร็จแล้ว";
+type ProjectRole = "owner" | "admin" | "member";
 
 export interface TaskItem {
   id: string;
@@ -33,7 +34,7 @@ export interface MemberItem {
   id: string;
   name: string;
   role: string;
-  projectRole: "owner" | "admin" | "member";
+  projectRole: ProjectRole;
   currentTasks: string;
   avatarUrl?: string;
 }
@@ -208,6 +209,12 @@ const THEME_MAP = {
 const normalizeProjectDeadline = (deadline: string) =>
   deadline.replace(/^กำหนดส่ง\s*:?\s*/, "").trim() || "ยังไม่ระบุกำหนดส่ง";
 
+const projectRoleLabel: Record<ProjectRole, string> = {
+  owner: "เจ้าของโปรเจกต์",
+  admin: "ผู้ดูแลโปรเจกต์",
+  member: "สมาชิกทีม",
+};
+
 export default function ProjectPage() {
   const searchParams = useSearchParams();
   const coverImage = searchParams.get("cover") || "/new/newsea.jpg";
@@ -233,6 +240,7 @@ export default function ProjectPage() {
   const [members, setMembers] = useState<MemberItem[]>([]);
   const [apiError, setApiError] = useState("");
   const [projectDeadline, setProjectDeadline] = useState(() => normalizeProjectDeadline(requestedDeadline));
+  const [currentProjectRole, setCurrentProjectRole] = useState<ProjectRole>(requestedProjectId ? "member" : "owner");
   const [backendProjectId, setBackendProjectId] = useState<string | null>(requestedProjectId);
   const [canInviteMembers, setCanInviteMembers] = useState(!requestedProjectId);
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
@@ -255,6 +263,7 @@ export default function ProjectPage() {
 
   const [newMemberName, setNewMemberName] = useState("");
   const [newMemberRole, setNewMemberRole] = useState("");
+  const [selectedMemberProjectRole, setSelectedMemberProjectRole] = useState<ProjectRole>("member");
   const [selectedAvatar, setSelectedAvatar] = useState("/cv1.png");
 
   // Task Due Date Calendar State (Using CalendarDemo)
@@ -307,12 +316,14 @@ export default function ProjectPage() {
     async function loadWorkspace(projectId: string) {
       const encoded = encodeURIComponent(projectId);
       const [projectResult, memberResult, taskResult, meetingResult] = await Promise.all([
-        apiFetch<{ deadline: string }>(`/api/projects/${encoded}`, { signal: controller.signal }),
+        apiFetch<{ deadline: string; role: ProjectRole }>(`/api/projects/${encoded}`, { signal: controller.signal }),
         apiFetch<{ members: Array<{ id: string; displayName: string; role: "owner" | "admin" | "member"; responsibility: string; avatarUrl: string }> }>(`/api/projects/${encoded}/members`, { signal: controller.signal }),
         apiFetch<{ tasks: ApiTask[] }>(`/api/projects/${encoded}/tasks`, { signal: controller.signal }),
         apiFetch<{ meetings: ApiMeeting[] }>(`/api/projects/${encoded}/meetings`, { signal: controller.signal }),
       ]);
       setProjectDeadline(normalizeProjectDeadline(projectResult.deadline));
+      setCurrentProjectRole(projectResult.role);
+      setCanInviteMembers(projectResult.role === "owner" || projectResult.role === "admin");
       setTasks(taskResult.tasks.map(mapApiTask));
       setMeetings(meetingResult.meetings.map(mapApiMeeting));
       setMembers(memberResult.members.map((member, index) => ({ id: member.id, name: member.displayName, projectRole: member.role, role: member.responsibility || (member.role === "owner" ? "เจ้าของโปรเจกต์" : member.role === "admin" ? "ผู้ดูแลโปรเจกต์" : "สมาชิกทีม"), currentTasks: `กำลังทำ ${taskResult.tasks.filter((task) => task.assignee?.id === member.id && task.status !== "เสร็จแล้ว").length} งาน`, avatarUrl: member.avatarUrl || `/cv${(index % 5) + 1}.png` })));
@@ -339,10 +350,11 @@ export default function ProjectPage() {
             signal: controller.signal,
           });
           if (!response.ok) return;
-          const project = (await response.json()) as { id: string; deadline: string };
+          const project = (await response.json()) as { id: string; deadline: string; role: ProjectRole };
           projectId = project.id;
           setBackendProjectId(project.id);
           setProjectDeadline(normalizeProjectDeadline(project.deadline));
+          setCurrentProjectRole(project.role || "owner");
           setCanInviteMembers(true);
         }
         if (projectId) {
@@ -859,6 +871,7 @@ export default function ProjectPage() {
                                   setEditingMember(m);
                                   setNewMemberName(m.name);
                                   setNewMemberRole(m.role);
+                                  setSelectedMemberProjectRole(m.projectRole);
                                   setSelectedAvatar(m.avatarUrl || "/cv1.png");
                                   setIsAddMemberModalOpen(true);
                                   setActiveMenuMemberName(null);
@@ -883,18 +896,9 @@ export default function ProjectPage() {
                             </div>
                           )}
                         </div>
-                        {/* Role Badge (Top) */}
-                        <div
-                          style={{
-                            fontSize: "11px",
-                            color: "var(--member-role-color, #4e6178)",
-                            fontWeight: 600,
-                            backgroundColor: "var(--member-role-bg, #f0f4f8)",
-                            padding: "4px 12px",
-                            borderRadius: "999px",
-                          }}
-                        >
-                          {m.role}
+                        {/* Access Role Badge (Top) */}
+                        <div className="member-access-badge" data-role={m.projectRole}>
+                          {projectRoleLabel[m.projectRole]}
                         </div>
 
                         {/* Profile Image (Middle 1) & Name & Current Tasks */}
@@ -1431,7 +1435,7 @@ export default function ProjectPage() {
                 type="button"
                 className="member-profile-close"
                 aria-label="ปิดหน้าต่าง"
-                onClick={() => { setIsAddMemberModalOpen(false); setEditingMember(null); }}
+                onClick={() => { setIsAddMemberModalOpen(false); setEditingMember(null); setSelectedMemberProjectRole("member"); }}
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1439,19 +1443,31 @@ export default function ProjectPage() {
 
             <form onSubmit={(e) => {
               e.preventDefault();
-              if (!newMemberName.trim() || !newMemberRole.trim()) return;
+              if (!newMemberName.trim()) return;
 
               if (editingMember) {
                 const memberName = newMemberName.trim();
                 const memberRole = newMemberRole.trim();
+                const projectAccessRole = selectedMemberProjectRole;
                 const avatarUrl = selectedAvatar;
                 requestEditConfirmation("ข้อมูลสมาชิก", memberName, () => {
                   void runMutation(async () => {
                     if (!backendProjectId || !editingMember.id) return;
                     const updated = await apiFetch<{ id: string; displayName: string; role: "owner" | "admin" | "member"; responsibility: string; avatarUrl: string }>(`/api/projects/${encodeURIComponent(backendProjectId)}/members/${encodeURIComponent(editingMember.id)}/profile`, { method: "PUT", body: JSON.stringify({ displayName: memberName, responsibility: memberRole, avatarUrl }) });
                     setMembers((current) => current.map((member) => member.id === updated.id ? { ...member, name: updated.displayName, projectRole: updated.role, role: updated.responsibility, avatarUrl: updated.avatarUrl } : member));
+                    if (
+                      currentProjectRole === "owner"
+                      && editingMember.projectRole !== "owner"
+                      && projectAccessRole !== editingMember.projectRole
+                    ) {
+                      const roleUpdated = await apiFetch<{ id: string; role: ProjectRole }>(`/api/projects/${encodeURIComponent(backendProjectId)}/members/${encodeURIComponent(editingMember.id)}/role`, {
+                        method: "PUT",
+                        body: JSON.stringify({ role: projectAccessRole }),
+                      });
+                      setMembers((current) => current.map((member) => member.id === roleUpdated.id ? { ...member, projectRole: roleUpdated.role } : member));
+                    }
                     await refreshWorkItems();
-                    setEditingMember(null); setNewMemberName(""); setNewMemberRole(""); setSelectedAvatar("/cv1.png"); setIsAddMemberModalOpen(false);
+                    setEditingMember(null); setNewMemberName(""); setNewMemberRole(""); setSelectedMemberProjectRole("member"); setSelectedAvatar("/cv1.png"); setIsAddMemberModalOpen(false);
                   }, "ไม่สามารถแก้ไขข้อมูลสมาชิกได้");
                 });
                 return;
@@ -1461,6 +1477,7 @@ export default function ProjectPage() {
 
               setNewMemberName("");
               setNewMemberRole("");
+              setSelectedMemberProjectRole("member");
               setSelectedAvatar("/cv1.png");
               setIsAddMemberModalOpen(false);
             }}>
@@ -1478,16 +1495,31 @@ export default function ProjectPage() {
               </div>
 
               <div className="form-group" style={{ marginBottom: "16px" }}>
-                <label className="form-label" style={{ display: "block", marginBottom: "6px", fontSize: "13px", fontWeight: 600 }}>ตำแหน่ง/หน้าที่ *</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="เช่น Full-Stack Developer"
-                  value={newMemberRole}
-                  onChange={(e) => setNewMemberRole(e.target.value)}
-                  className="form-input"
-                  style={{ width: "100%", padding: "10px 14px", borderRadius: "10px", fontSize: "14px" }}
-                />
+                <label className="form-label" style={{ display: "block", marginBottom: "6px", fontSize: "13px", fontWeight: 600 }}>สิทธิ์ในโปรเจกต์</label>
+                <div id="member-project-role">
+                  <Combobox
+                  options={editingMember?.projectRole === "owner"
+                    ? [projectRoleLabel.owner]
+                    : [projectRoleLabel.member, projectRoleLabel.admin]}
+                  value={projectRoleLabel[selectedMemberProjectRole]}
+                  onChange={(value) => {
+                    const nextRole = (Object.entries(projectRoleLabel) as Array<[ProjectRole, string]>)
+                      .find(([, label]) => label === value)?.[0];
+                    if (nextRole) setSelectedMemberProjectRole(nextRole);
+                  }}
+                  placeholder="เลือกสิทธิ์ในโปรเจกต์..."
+                  showAllOptionsOnOpen
+                  allowCustomValue={false}
+                  disabled={!editingMember || editingMember.projectRole === "owner" || currentProjectRole !== "owner"}
+                  />
+                </div>
+                <p id="member-project-role-help" className="member-project-role-help">
+                  {editingMember?.projectRole === "owner"
+                    ? "ไม่สามารถเปลี่ยนสิทธิ์ของเจ้าของโปรเจกต์ได้"
+                    : currentProjectRole === "owner"
+                      ? "เฉพาะเจ้าของโปรเจกต์เท่านั้นที่เปลี่ยนสิทธิ์นี้ได้"
+                      : "คุณดูสิทธิ์ได้ แต่เฉพาะเจ้าของโปรเจกต์เท่านั้นที่แก้ไขได้"}
+                </p>
               </div>
 
               <div className="form-group" style={{ marginBottom: "20px" }}>
@@ -1520,7 +1552,7 @@ export default function ProjectPage() {
               </div>
 
               <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px", marginTop: "24px" }}>
-                <button type="button" onClick={() => { setIsAddMemberModalOpen(false); setEditingMember(null); }} className="btn-outline member-profile-cancel" style={{ padding: "8px 16px", borderRadius: "999px", fontSize: "13px", fontWeight: 600, cursor: "pointer" }}>
+                <button type="button" onClick={() => { setIsAddMemberModalOpen(false); setEditingMember(null); setSelectedMemberProjectRole("member"); }} className="btn-outline member-profile-cancel" style={{ padding: "8px 16px", borderRadius: "999px", fontSize: "13px", fontWeight: 600, cursor: "pointer" }}>
                   ยกเลิก
                 </button>
                 <button

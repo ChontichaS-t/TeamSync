@@ -254,7 +254,7 @@ export default function CalendarPage() {
     setEditingEvent(null);
   };
 
-  const selectedDateLabel = new Intl.DateTimeFormat("en-US", {
+  const selectedDateLabel = new Intl.DateTimeFormat("th-TH", {
     weekday: "long",
     day: "numeric",
     month: "long",
@@ -406,11 +406,10 @@ export default function CalendarPage() {
           >
             {coverImage && (
               <div
+                className="calendar-cover-overlay"
                 style={{
                   position: "absolute",
                   inset: 0,
-                  backgroundColor: "rgba(255, 255, 255, 0.55)",
-                  backdropFilter: "blur(6px)",
                   zIndex: 0,
                 }}
               />
@@ -555,7 +554,7 @@ export default function CalendarPage() {
                 <CalendarDays aria-hidden="true" />
               </span>
               <div>
-                <p>Selected Date</p>
+                <p>วันที่เลือก</p>
                 <h2>{selectedDateLabel}</h2>
               </div>
             </div>
@@ -627,14 +626,14 @@ export default function CalendarPage() {
               {selectedDayEvents.length === 0 && (
                 <div className="calendar-empty">
                   <CalendarDays aria-hidden="true" />
-                  <h3>No events yet</h3>
-                  <p>This day is clear for focused work.</p>
+                  <h3>ยังไม่มีกิจกรรม</h3>
+                  <p>วันนี้ยังว่าง เหมาะสำหรับโฟกัสกับงาน</p>
                   <button
                     className="add-inline-btn"
                     type="button"
                     onClick={openNewEventModal}
                   >
-                    <Plus aria-hidden="true" /> Add Event
+                    <Plus aria-hidden="true" /> เพิ่มกิจกรรม
                   </button>
                 </div>
               )}

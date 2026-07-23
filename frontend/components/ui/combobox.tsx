@@ -15,6 +15,7 @@ export interface CustomComboboxProps {
   showCheckmark?: boolean;
   optionSecondarySeparator?: string;
   allowCustomValue?: boolean;
+  disabled?: boolean;
 }
 
 export function Combobox({
@@ -28,6 +29,7 @@ export function Combobox({
   showCheckmark = true,
   optionSecondarySeparator,
   allowCustomValue = true,
+  disabled = false,
 }: CustomComboboxProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState(value);
@@ -37,6 +39,10 @@ export function Combobox({
   useEffect(() => {
     setQuery(value);
   }, [value]);
+
+  useEffect(() => {
+    if (disabled) setIsOpen(false);
+  }, [disabled]);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -76,10 +82,11 @@ export function Combobox({
       {/* Trigger Input Box - Matching form-input styling 100% */}
       <div
         onClick={() => {
+          if (disabled) return;
           if (!isOpen) setIsFiltering(false);
           setIsOpen(!isOpen);
         }}
-        className="ts-combobox-trigger"
+        className={`ts-combobox-trigger${disabled ? " disabled" : ""}`}
         style={{
           display: "flex",
           flexDirection: "row",
@@ -90,7 +97,7 @@ export function Combobox({
           minHeight: "40px",
           padding: "0 14px",
           borderRadius: "10px",
-          cursor: "pointer",
+          cursor: disabled ? "not-allowed" : "pointer",
           boxSizing: "border-box",
           transition: "all 0.15s ease",
         }}
@@ -98,6 +105,7 @@ export function Combobox({
         <input
           type="text"
           value={query}
+          disabled={disabled}
           readOnly={!allowCustomValue}
           onChange={(e) => {
             if (!allowCustomValue) return;
@@ -106,7 +114,9 @@ export function Combobox({
             if (onChange) onChange(e.target.value);
             setIsOpen(true);
           }}
-          onFocus={() => setIsOpen(true)}
+          onFocus={() => {
+            if (!disabled) setIsOpen(true);
+          }}
           placeholder={placeholder}
           className="ts-combobox-input"
           style={{

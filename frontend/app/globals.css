@@ -435,6 +435,18 @@ html, body, .home-page, .project-room, .calendar-page-shell, .section-block, .pr
   border-color: #0f172a;
 }
 
+.ts-combobox-trigger.disabled,
+.ts-combobox-trigger.disabled:hover {
+  border-color: #cbd5e1;
+  background-color: #f8fafc;
+  opacity: 0.72;
+}
+
+.ts-combobox-trigger.disabled .ts-combobox-input {
+  color: #64748b;
+  cursor: not-allowed;
+}
+
 .ts-combobox-input {
   color: #111827;
 }
@@ -476,6 +488,16 @@ html, body, .home-page, .project-room, .calendar-page-shell, .section-block, .pr
 
 .dark .ts-combobox-trigger:hover {
   border-color: var(--theme-primary, #17211e);
+}
+
+.dark .ts-combobox-trigger.disabled,
+.dark .ts-combobox-trigger.disabled:hover {
+  border-color: #334155;
+  background-color: #0f172a;
+}
+
+.dark .ts-combobox-trigger.disabled .ts-combobox-input {
+  color: #94a3b8;
 }
 
 .dark .ts-combobox-input {
