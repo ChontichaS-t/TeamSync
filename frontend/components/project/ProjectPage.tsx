@@ -236,6 +236,13 @@ export default function ProjectPage() {
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [taskAssigneeFilterId, setTaskAssigneeFilterId] = useState<string | null>(null);
 
+  const openUnfilteredTaskView = (tab: "all" | "tasks") => {
+    setSearchQuery("");
+    setTaskFilterStatus("all");
+    setTaskAssigneeFilterId(null);
+    setActiveTab(tab);
+  };
+
   // Modals
   const [isAddTaskModalOpen, setIsAddTaskModalOpen] = useState(false);
   const [isAddMeetingModalOpen, setIsAddMeetingModalOpen] = useState(false);
@@ -703,7 +710,7 @@ export default function ProjectPage() {
 
         {/* Section Navigation Tabs */}
         <div className="project-section-tabs">
-          <button onClick={() => setActiveTab("all")} className={`sec-tab ${activeTab === "all" ? "active" : ""}`}>
+          <button onClick={() => openUnfilteredTaskView("all")} className={`sec-tab ${activeTab === "all" ? "active" : ""}`}>
             ภาพรวมโปรเจกต์
           </button>
           <button onClick={() => setActiveTab("members")} className={`sec-tab ${activeTab === "members" ? "active" : ""}`}>
@@ -712,7 +719,7 @@ export default function ProjectPage() {
           <button onClick={() => setActiveTab("meetings")} className={`sec-tab ${activeTab === "meetings" ? "active" : ""}`}>
             บันทึกการประชุม ({meetings.length})
           </button>
-          <button onClick={() => setActiveTab("tasks")} className={`sec-tab ${activeTab === "tasks" ? "active" : ""}`}>
+          <button onClick={() => openUnfilteredTaskView("tasks")} className={`sec-tab ${activeTab === "tasks" ? "active" : ""}`}>
             งานและรายการปรับแก้ ({tasks.length})
           </button>
         </div>
