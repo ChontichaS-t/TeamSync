@@ -4,7 +4,7 @@ import React, { useState, useMemo, useRef, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
-import { Plus, Search, X, Calendar as CalendarIcon, ChevronDown, MoreHorizontal, Trash2, Edit, UserPlus } from "lucide-react";
+import { Plus, Search, X, Calendar as CalendarIcon, ChevronDown, MoreHorizontal, Trash2, Edit, UserPlus, ArrowLeft } from "lucide-react";
 import { CalendarDemo } from "@/components/global/CalendarDemo";
 import { Combobox } from "@/components/ui/combobox";
 import { AlertDialogSmall } from "@/components/global/AlertDialogSmall";
@@ -637,7 +637,27 @@ export default function ProjectPage() {
 
       {/* 2. Main Content */}
       <div className="project-content">
-        {apiError && <p role="alert" style={{ color: "#b91c1c", marginBottom: 12 }}>{apiError}</p>}
+        {apiError && (
+          <div
+            className={`project-api-alert${apiError.includes("ไม่มีสิทธิ์") ? " permission-alert" : ""}`}
+            role="alert"
+          >
+            <span className="project-api-alert-copy">
+              <strong>
+                {apiError.includes("ไม่มีสิทธิ์")
+                  ? "ไม่สามารถดำเนินการได้"
+                  : "เกิดข้อผิดพลาด"}
+              </strong>
+              <span>{apiError}</span>
+            </span>
+            {apiError.includes("ไม่มีสิทธิ์") && (
+              <Link className="project-api-alert-action" href="/home">
+                <ArrowLeft aria-hidden="true" />
+                กลับหน้า Home
+              </Link>
+            )}
+          </div>
+        )}
         
         {/* Cover Banner with Overlay Content */}
         <div className="project-cover-banner">
@@ -655,7 +675,8 @@ export default function ProjectPage() {
               <div>
                 <h1 className="project-main-title">{projectTitle}</h1>
                 <p className="project-goal-desc">
-                  <strong>เป้าหมาย:</strong> พัฒนาระบบจัดการแข่งขันแบดมินตัน &nbsp;|&nbsp; <strong>กำหนดส่ง:</strong> 30 กันยายน 2026
+                  <span><strong>เป้าหมาย:</strong> พัฒนาระบบจัดการแข่งขันแบดมินตัน</span>
+                  <span><strong>กำหนดส่ง:</strong> 30 กันยายน 2026</span>
                 </p>
               </div>
 
@@ -1392,13 +1413,18 @@ export default function ProjectPage() {
           {/* Backdrop Overlay sibling without blur */}
           <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, zIndex: -1 }} onClick={() => setIsAddMemberModalOpen(false)} />
           
-          <div className="modal-dialog" style={{ width: "420px", backgroundColor: "#ffffff", borderRadius: "24px", padding: "24px", boxShadow: "0 20px 40px rgba(0, 0, 0, 0.1)", zIndex: 1, border: "1px solid #e2e8f0" }}>
+          <div className="modal-dialog member-profile-modal" style={{ width: "420px", borderRadius: "24px", padding: "24px", zIndex: 1 }}>
             <div className="modal-title-bar" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-              <h3 style={{ margin: 0, fontSize: "18px", fontWeight: 800, color: "#0f172a" }}>
+              <h3 style={{ margin: 0, fontSize: "18px", fontWeight: 800 }}>
                 {editingMember ? "แก้ไขข้อมูลสมาชิก" : "เพิ่มสมาชิกทีมใหม่"}
               </h3>
-              <button onClick={() => { setIsAddMemberModalOpen(false); setEditingMember(null); }} style={{ border: "none", background: "none", cursor: "pointer", padding: "4px" }}>
-                <X className="w-5 h-5" style={{ color: "#64748b" }} />
+              <button
+                type="button"
+                className="member-profile-close"
+                aria-label="ปิดหน้าต่าง"
+                onClick={() => { setIsAddMemberModalOpen(false); setEditingMember(null); }}
+              >
+                <X className="w-5 h-5" />
               </button>
             </div>
 
@@ -1430,7 +1456,7 @@ export default function ProjectPage() {
               setIsAddMemberModalOpen(false);
             }}>
               <div className="form-group" style={{ marginBottom: "16px" }}>
-                <label className="form-label" style={{ display: "block", marginBottom: "6px", fontSize: "13px", fontWeight: 600, color: "#334155" }}>ชื่อสมาชิก *</label>
+                <label className="form-label" style={{ display: "block", marginBottom: "6px", fontSize: "13px", fontWeight: 600 }}>ชื่อสมาชิก *</label>
                 <input
                   type="text"
                   required
@@ -1438,12 +1464,12 @@ export default function ProjectPage() {
                   value={newMemberName}
                   onChange={(e) => setNewMemberName(e.target.value)}
                   className="form-input"
-                  style={{ width: "100%", padding: "10px 14px", border: "1px solid #cbd5e1", borderRadius: "10px", fontSize: "14px" }}
+                  style={{ width: "100%", padding: "10px 14px", borderRadius: "10px", fontSize: "14px" }}
                 />
               </div>
 
               <div className="form-group" style={{ marginBottom: "16px" }}>
-                <label className="form-label" style={{ display: "block", marginBottom: "6px", fontSize: "13px", fontWeight: 600, color: "#334155" }}>ตำแหน่ง/หน้าที่ *</label>
+                <label className="form-label" style={{ display: "block", marginBottom: "6px", fontSize: "13px", fontWeight: 600 }}>ตำแหน่ง/หน้าที่ *</label>
                 <input
                   type="text"
                   required
@@ -1451,24 +1477,22 @@ export default function ProjectPage() {
                   value={newMemberRole}
                   onChange={(e) => setNewMemberRole(e.target.value)}
                   className="form-input"
-                  style={{ width: "100%", padding: "10px 14px", border: "1px solid #cbd5e1", borderRadius: "10px", fontSize: "14px" }}
+                  style={{ width: "100%", padding: "10px 14px", borderRadius: "10px", fontSize: "14px" }}
                 />
               </div>
 
               <div className="form-group" style={{ marginBottom: "20px" }}>
-                <label className="form-label" style={{ display: "block", marginBottom: "8px", fontSize: "13px", fontWeight: 600, color: "#334155" }}>เลือกรูปโปรไฟล์ (CV Avatar)</label>
+                <label className="form-label" style={{ display: "block", marginBottom: "8px", fontSize: "13px", fontWeight: 600 }}>เลือกรูปโปรไฟล์ (CV Avatar)</label>
                 <div style={{ display: "flex", gap: "10px", justifyContent: "space-between" }}>
                   {["/cv1.png", "/cv2.png", "/cv3.png", "/cv4.png", "/cv5.png"].map((cv) => (
-                    <div
+                    <button
+                      type="button"
                       key={cv}
                       onClick={() => setSelectedAvatar(cv)}
+                      className={`member-avatar-option${selectedAvatar === cv ? " selected" : ""}`}
+                      aria-label={`เลือกรูปโปรไฟล์ ${cv.replace("/cv", "").replace(".png", "")}`}
+                      aria-pressed={selectedAvatar === cv}
                       style={{
-                        cursor: "pointer",
-                        padding: "6px",
-                        borderRadius: "14px",
-                        border: selectedAvatar === cv ? "2px solid var(--theme-primary)" : "2px solid transparent",
-                        backgroundColor: selectedAvatar === cv ? "var(--theme-primary-shadow, rgba(0,0,0,0.04))" : "transparent",
-                        transition: "all 0.15s ease",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
@@ -1481,13 +1505,13 @@ export default function ProjectPage() {
                         height={45}
                         style={{ objectFit: "contain" }}
                       />
-                    </div>
+                    </button>
                   ))}
                 </div>
               </div>
 
               <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px", marginTop: "24px" }}>
-                <button type="button" onClick={() => { setIsAddMemberModalOpen(false); setEditingMember(null); }} className="btn-outline" style={{ padding: "8px 16px", borderRadius: "999px", fontSize: "13px", fontWeight: 600, border: "1px solid #cbd5e1", cursor: "pointer", backgroundColor: "transparent" }}>
+                <button type="button" onClick={() => { setIsAddMemberModalOpen(false); setEditingMember(null); }} className="btn-outline member-profile-cancel" style={{ padding: "8px 16px", borderRadius: "999px", fontSize: "13px", fontWeight: 600, cursor: "pointer" }}>
                   ยกเลิก
                 </button>
                 <button
