@@ -3,15 +3,16 @@ package pages
 import "time"
 
 type Project struct {
-	ID          string `json:"id"`
-	Title       string `json:"title"`
-	Description string `json:"description"`
-	Cover       string `json:"cover"`
-	Tag         string `json:"tags"`
-	Deadline    string `json:"deadline"`
-	Progress    int    `json:"progress"`
-	Role        string `json:"role"`
-	MemberCount int    `json:"memberCount"`
+	ID            string   `json:"id"`
+	Title         string   `json:"title"`
+	Description   string   `json:"description"`
+	Cover         string   `json:"cover"`
+	Tag           string   `json:"tags"`
+	Deadline      string   `json:"deadline"`
+	Progress      int      `json:"progress"`
+	Role          string   `json:"role"`
+	MemberCount   int      `json:"memberCount"`
+	MemberAvatars []string `json:"memberAvatars,omitempty"`
 }
 
 type ProjectMember struct {

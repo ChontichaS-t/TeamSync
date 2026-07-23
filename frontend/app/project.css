@@ -30,7 +30,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 18px clamp(24px, 4vw, 64px);
+  padding: 10px clamp(20px, 3vw, 48px);
   background: rgba(255, 255, 255, 0.88);
   border: 0 !important;
   border-bottom: 0 !important;
@@ -43,9 +43,9 @@
 .project-navbar .brand,
 .auth-navbar .brand,
 .home-navbar .brand {
-  min-width: 140px;
+  min-width: 120px;
   color: #1f1f1f;
-  font-size: 19px;
+  font-size: 18px;
   font-weight: 750;
   letter-spacing: -0.6px;
   text-decoration: none;
@@ -57,13 +57,13 @@
   left: 50%;
   display: flex;
   align-items: center;
-  gap: clamp(20px, 3vw, 48px);
+  gap: clamp(14px, 2.5vw, 36px);
   transform: translateX(-50%);
 }
 
 .project-navbar-menu a,
 .project-navbar-links a {
-  padding: 8px 16px;
+  padding: 7px 14px;
   color: #64748b;
   border-radius: 999px;
   font-size: 13px;
@@ -90,7 +90,7 @@
 @media (max-width: 680px) {
   .project-navbar,
   .auth-navbar,
-  .home-navbar { padding: 16px 18px; }
+  .home-navbar { padding: 10px 14px; }
   .project-navbar-menu,
   .project-navbar-links { display: none; }
   .project-navbar .brand { min-width: 0; }
@@ -1651,5 +1651,4 @@ textarea.form-input {
 .dark .ts-combobox-check {
   color: var(--theme-primary, #17211e);
 }
-
 

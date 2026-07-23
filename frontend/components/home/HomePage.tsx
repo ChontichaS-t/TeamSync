@@ -83,13 +83,16 @@ export default function HomePage() {
               deadline: string;
               progress: number;
               memberCount: number;
+              memberAvatars?: string[];
               role: "owner" | "admin" | "member";
             }>;
           }>("/api/projects", { signal: controller.signal });
           const backendProjects: ProjectItem[] = projectResult.projects.map((project) => ({
               ...project,
               deadline: project.deadline || "ยังไม่ระบุกำหนดส่ง",
-              members: ["/cv1.png"],
+              members: (project.memberAvatars?.length ? project.memberAvatars : ["/cv1.png"]).slice(0, 6).map(
+                (avatarUrl, memberIndex) => avatarUrl || `/cv${(memberIndex % 5) + 1}.png`,
+              ),
             }));
           setProjects(backendProjects);
       } catch (error) {
@@ -196,6 +199,7 @@ export default function HomePage() {
         <div className="project-grid" id="projects">
           {filteredProjects.map((project, index) => {
             const isMenuOpen = activeMenuProjectId === project.id;
+            const totalMemberCount = project.memberCount ?? project.members.length;
             return (
               <Link
                 className="project-card"
@@ -284,18 +288,20 @@ export default function HomePage() {
                     <span>{project.deadline}</span>
                   </div>
 
-                  <div className="project-members" aria-label={`${project.memberCount || 1} project members`}>
+                  <div className="project-members" aria-label={`${totalMemberCount} project members`}>
                     <div className="project-member-avatars">
-                      <span className="project-member-avatar">
-                        <Image
-                          src={project.members[0] || "/cv1.png"}
-                          alt="Project owner"
-                          fill
-                          sizes="28px"
-                        />
-                      </span>
+                      {project.members.slice(0, 6).map((avatarUrl, memberIndex) => (
+                        <span className="project-member-avatar" key={`${avatarUrl}-${memberIndex}`}>
+                          <Image
+                            src={avatarUrl || `/cv${(memberIndex % 5) + 1}.png`}
+                            alt={`Project member ${memberIndex + 1}`}
+                            fill
+                            sizes="29px"
+                          />
+                        </span>
+                      ))}
                     </div>
-                    <span className="project-member-count">{project.memberCount || 1}</span>
+                    <span className="project-member-count">{totalMemberCount}</span>
                   </div>
                 </div>
               </Link>

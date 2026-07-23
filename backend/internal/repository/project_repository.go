@@ -152,7 +152,17 @@ func (r *ProjectRepository) ListProjects(ctx context.Context, userID string) ([]
 	rows, err := r.pool.Query(ctx, `
 		SELECT project.id, project.title, project.description, project.cover, project.tag,
 		       project.deadline, project.progress, membership.role,
-		       (SELECT count(*) FROM project_members member_count WHERE member_count.project_id = project.id)
+		       (SELECT count(*) FROM project_members member_count WHERE member_count.project_id = project.id),
+		       ARRAY(
+		           SELECT member_account.avatar_url
+		           FROM project_members preview_member
+		           JOIN users member_account ON member_account.id = preview_member.user_id
+		           WHERE preview_member.project_id = project.id
+		           ORDER BY
+		               CASE preview_member.role WHEN 'owner' THEN 0 WHEN 'admin' THEN 1 ELSE 2 END,
+		               preview_member.joined_at
+		           LIMIT 6
+		       )
 		FROM project_members membership
 		JOIN projects project ON project.id = membership.project_id
 		WHERE membership.user_id = $1
@@ -166,7 +176,7 @@ func (r *ProjectRepository) ListProjects(ctx context.Context, userID string) ([]
 	projects := make([]pages.Project, 0)
 	for rows.Next() {
 		var project pages.Project
-		if err := rows.Scan(&project.ID, &project.Title, &project.Description, &project.Cover, &project.Tag, &project.Deadline, &project.Progress, &project.Role, &project.MemberCount); err != nil {
+		if err := rows.Scan(&project.ID, &project.Title, &project.Description, &project.Cover, &project.Tag, &project.Deadline, &project.Progress, &project.Role, &project.MemberCount, &project.MemberAvatars); err != nil {
 			return nil, fmt.Errorf("scan project: %w", err)
 		}
 		projects = append(projects, project)
