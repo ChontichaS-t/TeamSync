@@ -11,6 +11,7 @@ import { AlertDialogSmall } from "@/components/global/AlertDialogSmall";
 import { UserProfileMenu } from "@/components/global/UserProfileMenu";
 import { InviteProjectModal } from "@/components/project/InviteProjectModal";
 import { apiFetch } from "@/lib/api";
+import { CalendarEvent } from "@/components/calendar/CalendarPage";
 
 export type TaskStatus = "ยังไม่เริ่ม" | "กำลังทำ" | "รอตรวจ" | "เสร็จแล้ว";
 type ProjectRole = "owner" | "admin" | "member";
@@ -217,26 +218,32 @@ const projectRoleLabel: Record<ProjectRole, string> = {
 
 export default function ProjectPage() {
   const searchParams = useSearchParams();
-  const coverImage = searchParams.get("cover") || "/new/newsea.jpg";
   const requestedProjectId = searchParams.get("projectId");
-  const projectTitle = searchParams.get("title") || "Badminton Tournament System";
   const requestedDeadline = searchParams.get("deadline") || "กำหนดส่ง 30 กันยายน 2026";
 
-  const activeTheme = (THEME_MAP as Record<string, { primary: string; hover: string; shadow: string }>)[coverImage] || {
-    primary: "#17211e",
-    hover: "#253631",
-    shadow: "rgba(23, 33, 30, 0.18)",
-  };
+  const [coverImage, setCoverImage] = useState(() => searchParams.get("cover") || "/new/newsea.jpg");
+  const [projectTitle, setProjectTitle] = useState(() => searchParams.get("title") || "Badminton Tournament System");
 
-  const dynamicStyle = {
-    "--theme-primary": activeTheme.primary,
-    "--theme-primary-hover": activeTheme.hover,
-    "--theme-primary-shadow": activeTheme.shadow,
-  } as React.CSSProperties;
+  const activeTheme = useMemo(() => {
+    return (THEME_MAP as Record<string, { primary: string; hover: string; shadow: string }>)[coverImage] || {
+      primary: "#17211e",
+      hover: "#253631",
+      shadow: "rgba(23, 33, 30, 0.18)",
+    };
+  }, [coverImage]);
+
+  const dynamicStyle = useMemo(() => {
+    return {
+      "--theme-primary": activeTheme.primary,
+      "--theme-primary-hover": activeTheme.hover,
+      "--theme-primary-shadow": activeTheme.shadow,
+    } as React.CSSProperties;
+  }, [activeTheme]);
 
   const [activeTab, setActiveTab] = useState<"all" | "tasks" | "meetings" | "members">("all");
   const [tasks, setTasks] = useState<TaskItem[]>([]);
   const [meetings, setMeetings] = useState<MeetingItem[]>([]);
+  const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [members, setMembers] = useState<MemberItem[]>([]);
   const [apiError, setApiError] = useState("");
   const [projectDeadline, setProjectDeadline] = useState(() => normalizeProjectDeadline(requestedDeadline));
@@ -310,22 +317,61 @@ export default function ProjectPage() {
     setEditConfirmation(null);
   };
 
+  // Find next meeting date from calendar events
+  const nextMeetingDateString = useMemo(() => {
+    if (!events || events.length === 0) return "ไม่มี";
+    
+    // Get current date string formatted as YYYY-MM-DD
+    const today = new Date();
+    const y = today.getFullYear();
+    const m = String(today.getMonth() + 1).padStart(2, "0");
+    const d = String(today.getDate()).padStart(2, "0");
+    const todayStr = `${y}-${m}-${d}`;
+    
+    // Filter events that are today or in the future
+    const upcomingEvents = events.filter((e) => e.dateKey >= todayStr);
+    
+    if (upcomingEvents.length === 0) return "ไม่มี";
+    
+    // Sort upcoming events by dateKey (ascending) and time (ascending)
+    upcomingEvents.sort((a, b) => {
+      if (a.dateKey !== b.dateKey) {
+        return a.dateKey.localeCompare(b.dateKey);
+      }
+      return a.time.localeCompare(b.time);
+    });
+    
+    // Format the date into Thai short format (e.g. 25 ก.ค. 2026)
+    const nextEvent = upcomingEvents[0];
+    const THAI_SHORT_MONTHS = [
+      "ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.",
+      "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."
+    ];
+    const [eventYear, eventMonth, eventDay] = nextEvent.dateKey.split("-").map(Number);
+    const monthShort = THAI_SHORT_MONTHS[eventMonth - 1] || "";
+    return `${eventDay} ${monthShort} ${eventYear}`;
+  }, [events]);
+
   useEffect(() => {
     const controller = new AbortController();
 
     async function loadWorkspace(projectId: string) {
       const encoded = encodeURIComponent(projectId);
-      const [projectResult, memberResult, taskResult, meetingResult] = await Promise.all([
-        apiFetch<{ deadline: string; role: ProjectRole }>(`/api/projects/${encoded}`, { signal: controller.signal }),
+      const [projectResult, memberResult, taskResult, meetingResult, eventResult] = await Promise.all([
+        apiFetch<{ title: string; cover: string; deadline: string; role: ProjectRole }>(`/api/projects/${encoded}`, { signal: controller.signal }),
         apiFetch<{ members: Array<{ id: string; displayName: string; role: "owner" | "admin" | "member"; responsibility: string; avatarUrl: string }> }>(`/api/projects/${encoded}/members`, { signal: controller.signal }),
         apiFetch<{ tasks: ApiTask[] }>(`/api/projects/${encoded}/tasks`, { signal: controller.signal }),
         apiFetch<{ meetings: ApiMeeting[] }>(`/api/projects/${encoded}/meetings`, { signal: controller.signal }),
+        apiFetch<{ events: CalendarEvent[] }>(`/api/projects/${encoded}/events`, { signal: controller.signal }),
       ]);
+      setProjectTitle(projectResult.title);
+      setCoverImage(projectResult.cover);
       setProjectDeadline(normalizeProjectDeadline(projectResult.deadline));
       setCurrentProjectRole(projectResult.role);
       setCanInviteMembers(projectResult.role === "owner" || projectResult.role === "admin");
       setTasks(taskResult.tasks.map(mapApiTask));
       setMeetings(meetingResult.meetings.map(mapApiMeeting));
+      setEvents(eventResult.events);
       setMembers(memberResult.members.map((member, index) => ({ id: member.id, name: member.displayName, projectRole: member.role, role: member.responsibility || (member.role === "owner" ? "เจ้าของโปรเจกต์" : member.role === "admin" ? "ผู้ดูแลโปรเจกต์" : "สมาชิกทีม"), currentTasks: `กำลังทำ ${taskResult.tasks.filter((task) => task.assignee?.id === member.id && task.status !== "เสร็จแล้ว").length} งาน`, avatarUrl: member.avatarUrl || `/cv${(index % 5) + 1}.png` })));
     }
 
@@ -350,9 +396,11 @@ export default function ProjectPage() {
             signal: controller.signal,
           });
           if (!response.ok) return;
-          const project = (await response.json()) as { id: string; deadline: string; role: ProjectRole };
+          const project = (await response.json()) as { id: string; title: string; cover: string; deadline: string; role: ProjectRole };
           projectId = project.id;
           setBackendProjectId(project.id);
+          setProjectTitle(project.title);
+          setCoverImage(project.cover);
           setProjectDeadline(normalizeProjectDeadline(project.deadline));
           setCurrentProjectRole(project.role || "owner");
           setCanInviteMembers(true);
@@ -389,12 +437,14 @@ export default function ProjectPage() {
   const refreshWorkItems = async () => {
     if (!backendProjectId) return;
     const encoded = encodeURIComponent(backendProjectId);
-    const [taskResult, meetingResult] = await Promise.all([
+    const [taskResult, meetingResult, eventResult] = await Promise.all([
       apiFetch<{ tasks: ApiTask[] }>(`/api/projects/${encoded}/tasks`),
       apiFetch<{ meetings: ApiMeeting[] }>(`/api/projects/${encoded}/meetings`),
+      apiFetch<{ events: CalendarEvent[] }>(`/api/projects/${encoded}/events`),
     ]);
     setTasks(taskResult.tasks.map(mapApiTask));
     setMeetings(meetingResult.meetings.map(mapApiMeeting));
+    setEvents(eventResult.events);
   };
 
   const assigneeId = (name: string) => members.find((member) => member.name === name)?.id || "";
@@ -647,11 +697,11 @@ export default function ProjectPage() {
           <Link href="/home">Home</Link>
           <Link
             className="project-navbar-active"
-            href={`/project?cover=${encodeURIComponent(coverImage)}`}
+            href={`/project?projectId=${backendProjectId ? encodeURIComponent(backendProjectId) : ""}`}
           >
             Project
           </Link>
-          <Link href={`/calendar?cover=${encodeURIComponent(coverImage)}&title=${encodeURIComponent(projectTitle)}${backendProjectId ? `&projectId=${encodeURIComponent(backendProjectId)}` : ""}`}>Calendar</Link>
+          <Link href={`/calendar?projectId=${backendProjectId ? encodeURIComponent(backendProjectId) : ""}`}>Calendar</Link>
         </div>
         <UserProfileMenu />
       </nav>
@@ -743,7 +793,7 @@ export default function ProjectPage() {
               <div className="stat-box stat-box-meeting">
                 <div className="stat-box-content">
                   <div className="stat-box-label">ประชุมครั้งถัดไป</div>
-                  <div className="stat-box-value stat-box-date">25 ก.ค. 2026</div>
+                  <div className="stat-box-value stat-box-date">{nextMeetingDateString}</div>
                 </div>
               </div>
             </div>
@@ -925,6 +975,7 @@ export default function ProjectPage() {
                             {m.name}
                           </h3>
                           <div
+                            className="member-tasks-count"
                             style={{
                               fontSize: "13px",
                               fontWeight: 700,

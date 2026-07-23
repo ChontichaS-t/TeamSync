@@ -547,6 +547,10 @@ html, body, .home-page, .project-room, .calendar-page-shell, .section-block, .pr
   border-color: #334155;
 }
 
+.dark .member-tasks-count {
+  color: color-mix(in srgb, var(--theme-primary, #17211e) 45%, #ffffff) !important;
+}
+
 .member-role-badge {
   color: #4e6178;
   background-color: #f0f4f8;
@@ -641,4 +645,14 @@ html, body, .home-page, .project-room, .calendar-page-shell, .section-block, .pr
   background: var(--theme-primary, #17211e) !important;
   color: #ffffff !important;
   border-color: var(--theme-primary, #17211e) !important;
+}
+
+/* Edit project confirmation button in dark mode override */
+.dark .edit-project-confirm-btn {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+}
+
+.dark .edit-project-confirm-btn:hover {
+  background-color: #e2e8f0 !important;
 }

@@ -22,6 +22,7 @@ export type AlertDialogSmallProps = {
   onAction?: () => void;
   variant?: "default" | "destructive";
   actionBgColor?: string;
+  actionClassName?: string;
 };
 
 export function AlertDialogSmall({
@@ -35,6 +36,7 @@ export function AlertDialogSmall({
   onAction,
   variant = "default",
   actionBgColor,
+  actionClassName,
 }: AlertDialogSmallProps) {
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
@@ -47,6 +49,7 @@ export function AlertDialogSmall({
         <AlertDialogFooter>
           <AlertDialogCancel>{cancelText}</AlertDialogCancel>
           <AlertDialogAction
+            className={actionClassName}
             onClick={onAction}
             style={{
               backgroundColor: actionBgColor || (variant === "destructive" ? "#ef4444" : undefined),

@@ -27,9 +27,15 @@ type ProjectItem = {
   role?: "owner" | "admin" | "member";
 };
 
-type PendingProjectEdit = {
-  project: ProjectItem;
-  data: NewProjectData;
+const THEME_COLORS: Record<string, { light: string; dark: string }> = {
+  "/new/newsea.jpg": { light: "#1a77a6", dark: "#38bdf8" },
+  "/new/newtrain.jpg": { light: "#351e7a", dark: "#a78bfa" },
+  "/new/newrabbit.jpg": { light: "#db2777", dark: "#f472b6" },
+  "/new/newgrli.jpg": { light: "#5D4037", dark: "#bcaaa4" },
+  "/new/newwindow.jpg": { light: "#bb5b12", dark: "#fb923c" },
+  "/new/newbed.jpg": { light: "#1a77a6", dark: "#38bdf8" },
+  "/new/newboy.jpg": { light: "#1a77a6", dark: "#38bdf8" },
+  "/new/newdog.jpg": { light: "#16a34a", dark: "#4ade80" },
 };
 
 export default function HomePage() {
@@ -233,12 +239,17 @@ export default function HomePage() {
           {filteredProjects.map((project, index) => {
             const isMenuOpen = activeMenuProjectId === project.id;
             const totalMemberCount = project.memberCount ?? project.members.length;
+            const themeColors = THEME_COLORS[project.cover] || { light: "rgba(24, 39, 33, .72)", dark: "#10b981" };
             return (
               <Link
                 className="project-card"
-                href={`/project?cover=${encodeURIComponent(project.cover)}&title=${encodeURIComponent(project.title)}&deadline=${encodeURIComponent(project.deadline)}${project.role && project.id ? `&projectId=${encodeURIComponent(String(project.id))}` : ""}`}
+                href={`/project?projectId=${encodeURIComponent(String(project.id))}`}
                 aria-label={`Open ${project.title} project`}
                 key={project.id}
+                style={{
+                  "--project-theme-color-light": themeColors.light,
+                  "--project-theme-color-dark": themeColors.dark,
+                } as React.CSSProperties}
               >
                 <Image
                   className="project-cover-image"
@@ -384,6 +395,7 @@ export default function HomePage() {
         description={`คุณต้องการบันทึกการแก้ไขโปรเจกต์ "${pendingProjectEdit?.project.title || ""}" ใช่หรือไม่?`}
         cancelText="ยกเลิก"
         actionText="ยืนยันการแก้ไข"
+        actionClassName="edit-project-confirm-btn"
         onAction={() => {
           if (!pendingProjectEdit) return;
           const pending = pendingProjectEdit;

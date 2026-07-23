@@ -58,21 +58,26 @@ const THEME_MAP = {
 
 export default function CalendarPage() {
   const searchParams = useSearchParams();
-  const coverImage = searchParams.get("cover") || "/new/newsea.jpg";
-  const projectTitle = searchParams.get("title") || "Badminton Tournament System";
   const requestedProjectId = searchParams.get("projectId");
 
-  const activeTheme = (THEME_MAP as Record<string, { primary: string; hover: string; shadow: string }>)[coverImage || ""] || {
-    primary: "#17211e",
-    hover: "#253631",
-    shadow: "rgba(23, 33, 30, 0.18)",
-  };
+  const [coverImage, setCoverImage] = useState(() => searchParams.get("cover") || "/new/newsea.jpg");
+  const [projectTitle, setProjectTitle] = useState(() => searchParams.get("title") || "Badminton Tournament System");
 
-  const dynamicStyle = {
-    "--theme-primary": activeTheme.primary,
-    "--theme-primary-hover": activeTheme.hover,
-    "--theme-primary-shadow": activeTheme.shadow,
-  } as React.CSSProperties;
+  const activeTheme = useMemo(() => {
+    return (THEME_MAP as Record<string, { primary: string; hover: string; shadow: string }>)[coverImage || ""] || {
+      primary: "#17211e",
+      hover: "#253631",
+      shadow: "rgba(23, 33, 30, 0.18)",
+    };
+  }, [coverImage]);
+
+  const dynamicStyle = useMemo(() => {
+    return {
+      "--theme-primary": activeTheme.primary,
+      "--theme-primary-hover": activeTheme.hover,
+      "--theme-primary-shadow": activeTheme.shadow,
+    } as React.CSSProperties;
+  }, [activeTheme]);
 
   const [currentDate, setCurrentDate] = useState<Date>(new Date(2026, 6, 21)); // July 2026
   const [selectedDate, setSelectedDate] = useState<Date>(new Date(2026, 6, 21));
@@ -91,14 +96,24 @@ export default function CalendarPage() {
     async function loadEvents() {
       try {
         let projectId = requestedProjectId;
-        if (!projectId) {
-          const project = await apiFetch<{ id: string }>("/api/projects/ensure", {
+        if (projectId) {
+          // Fetch project details first
+          const projectData = await apiFetch<{ title: string; cover: string }>(`/api/projects/${encodeURIComponent(projectId)}`, { signal: controller.signal });
+          setProjectTitle(projectData.title);
+          setCoverImage(projectData.cover);
+        } else {
+          // Ensure/create project using initial parameters
+          const initialCover = searchParams.get("cover") || "/new/newsea.jpg";
+          const initialTitle = searchParams.get("title") || "Badminton Tournament System";
+          const project = await apiFetch<{ id: string; title: string; cover: string }>("/api/projects/ensure", {
             method: "POST",
-            body: JSON.stringify({ externalKey: `cover:${coverImage}`, title: projectTitle, description: "", cover: coverImage, tags: "blue", deadline: "", progress: 0 }),
+            body: JSON.stringify({ externalKey: `cover:${initialCover}`, title: initialTitle, description: "", cover: initialCover, tags: "blue", deadline: "", progress: 0 }),
             signal: controller.signal,
           });
           projectId = project.id;
           setBackendProjectId(project.id);
+          setProjectTitle(project.title);
+          setCoverImage(project.cover);
         }
         const result = await apiFetch<{ events: CalendarEvent[] }>(`/api/projects/${encodeURIComponent(projectId)}/events`, { signal: controller.signal });
         setEvents(result.events);
@@ -108,7 +123,7 @@ export default function CalendarPage() {
     }
     void loadEvents();
     return () => controller.abort();
-  }, [coverImage, projectTitle, requestedProjectId]);
+  }, [requestedProjectId, searchParams]);
 
   // Delete Confirmation Dialog State
   const [deleteEventId, setDeleteEventId] = useState<string | null>(null);
@@ -270,10 +285,10 @@ export default function CalendarPage() {
         </Link>
         <div className="project-navbar-menu">
           <Link href="/home">Home</Link>
-          <Link href={`/project?cover=${encodeURIComponent(coverImage)}&title=${encodeURIComponent(projectTitle)}${backendProjectId ? `&projectId=${encodeURIComponent(backendProjectId)}` : ""}`}>Project</Link>
+          <Link href={`/project?projectId=${backendProjectId ? encodeURIComponent(backendProjectId) : ""}`}>Project</Link>
           <Link
             className="project-navbar-active"
-            href={`/calendar?cover=${encodeURIComponent(coverImage)}&title=${encodeURIComponent(projectTitle)}${backendProjectId ? `&projectId=${encodeURIComponent(backendProjectId)}` : ""}`}
+            href={`/calendar?projectId=${backendProjectId ? encodeURIComponent(backendProjectId) : ""}`}
           >
             Calendar
           </Link>

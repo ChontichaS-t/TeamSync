@@ -95,7 +95,9 @@ func (r *ProjectRepository) CreateProject(ctx context.Context, userID string, in
 func (r *ProjectRepository) GetProject(ctx context.Context, userID, projectID string) (pages.Project, error) {
 	var project pages.Project
 	err := r.pool.QueryRow(ctx, `
-		SELECT project.id,project.title,project.description,project.cover,project.tag,project.deadline,project.progress,member.role,
+		SELECT project.id,project.title,project.description,project.cover,project.tag,project.deadline,
+		       COALESCE((SELECT CASE WHEN count(*) = 0 THEN 0 ELSE ROUND(COUNT(CASE WHEN status = 'เสร็จแล้ว' THEN 1 END)::numeric / count(*) * 100)::integer END FROM tasks WHERE tasks.project_id = project.id), 0) AS progress,
+		       member.role,
 		       (SELECT count(*) FROM project_members count_member WHERE count_member.project_id=project.id)
 		FROM projects project JOIN project_members member ON member.project_id=project.id
 		WHERE project.id=$1 AND member.user_id=$2
@@ -151,7 +153,9 @@ func (r *ProjectRepository) DeleteProject(ctx context.Context, userID, projectID
 func (r *ProjectRepository) ListProjects(ctx context.Context, userID string) ([]pages.Project, error) {
 	rows, err := r.pool.Query(ctx, `
 		SELECT project.id, project.title, project.description, project.cover, project.tag,
-		       project.deadline, project.progress, membership.role,
+		       project.deadline,
+		       COALESCE((SELECT CASE WHEN count(*) = 0 THEN 0 ELSE ROUND(COUNT(CASE WHEN status = 'เสร็จแล้ว' THEN 1 END)::numeric / count(*) * 100)::integer END FROM tasks WHERE tasks.project_id = project.id), 0) AS progress,
+		       membership.role,
 		       (SELECT count(*) FROM project_members member_count WHERE member_count.project_id = project.id),
 		       ARRAY(
 		           SELECT member_account.avatar_url
@@ -386,7 +390,8 @@ func (r *ProjectRepository) InvitationByTokenHash(ctx context.Context, tokenHash
 	var preview pages.InvitationPreview
 	err := r.pool.QueryRow(ctx, `
 		SELECT project.id, project.title, project.description, project.cover, project.tag,
-		       project.deadline, project.progress,
+		       project.deadline,
+		       COALESCE((SELECT CASE WHEN count(*) = 0 THEN 0 ELSE ROUND(COUNT(CASE WHEN status = 'เสร็จแล้ว' THEN 1 END)::numeric / count(*) * 100)::integer END FROM tasks WHERE tasks.project_id = project.id), 0) AS progress,
 		       (SELECT count(*) FROM project_members members WHERE members.project_id = project.id),
 		       creator.display_name, invitation.expires_at
 		FROM project_invitations invitation
@@ -421,7 +426,8 @@ func (r *ProjectRepository) AcceptInvitation(ctx context.Context, userID string,
 	var invitationID, role string
 	err = tx.QueryRow(ctx, `
 		SELECT invitation.id, invitation.role, project.id, project.title, project.description,
-		       project.cover, project.tag, project.deadline, project.progress
+		       project.cover, project.tag, project.deadline,
+		       COALESCE((SELECT CASE WHEN count(*) = 0 THEN 0 ELSE ROUND(COUNT(CASE WHEN status = 'เสร็จแล้ว' THEN 1 END)::numeric / count(*) * 100)::integer END FROM tasks WHERE tasks.project_id = project.id), 0) AS progress
 		FROM project_invitations invitation
 		JOIN projects project ON project.id = invitation.project_id
 		WHERE invitation.token_hash = $1
