@@ -221,8 +221,15 @@ export default function ProjectPage() {
   const requestedProjectId = searchParams.get("projectId");
   const requestedDeadline = searchParams.get("deadline") || "กำหนดส่ง 30 กันยายน 2026";
 
-  const [coverImage, setCoverImage] = useState(() => searchParams.get("cover") || "/new/newsea.jpg");
-  const [projectTitle, setProjectTitle] = useState(() => searchParams.get("title") || "Badminton Tournament System");
+  const [coverImage, setCoverImage] = useState(() => {
+    if (requestedProjectId) return "";
+    return searchParams.get("cover") || "/new/newsea.jpg";
+  });
+  const [projectTitle, setProjectTitle] = useState(() => {
+    if (requestedProjectId) return "";
+    return searchParams.get("title") || "Badminton Tournament System";
+  });
+  const [isLoading, setIsLoading] = useState(true);
 
   const activeTheme = useMemo(() => {
     return (THEME_MAP as Record<string, { primary: string; hover: string; shadow: string }>)[coverImage] || {
@@ -251,6 +258,13 @@ export default function ProjectPage() {
   const [backendProjectId, setBackendProjectId] = useState<string | null>(requestedProjectId);
   const [canInviteMembers, setCanInviteMembers] = useState(!requestedProjectId);
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+
+  useEffect(() => {
+    console.log("[DEBUG] ProjectPage component MOUNTED");
+    return () => {
+      console.log("[DEBUG] ProjectPage component UNMOUNTED");
+    };
+  }, []);
 
   const [taskFilterStatus, setTaskFilterStatus] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
@@ -353,9 +367,11 @@ export default function ProjectPage() {
   }, [events]);
 
   useEffect(() => {
+    console.log("[DEBUG] prepareProject useEffect triggered", { requestedProjectId, backendProjectId, requestedDeadline });
     const controller = new AbortController();
 
     async function loadWorkspace(projectId: string) {
+      console.log("[DEBUG] loadWorkspace called for:", projectId);
       const encoded = encodeURIComponent(projectId);
       const [projectResult, memberResult, taskResult, meetingResult, eventResult] = await Promise.all([
         apiFetch<{ title: string; cover: string; deadline: string; role: ProjectRole }>(`/api/projects/${encoded}`, { signal: controller.signal }),
@@ -378,8 +394,10 @@ export default function ProjectPage() {
     async function prepareProject() {
       try {
         setProjectDeadline(normalizeProjectDeadline(requestedDeadline));
-        let projectId = requestedProjectId;
+        let projectId = requestedProjectId || backendProjectId;
+        console.log("[DEBUG] prepareProject running", { projectId, requestedProjectId, backendProjectId });
         if (!projectId) {
+          console.log("[DEBUG] prepareProject: fetching ensure");
           const response = await fetch("/api/projects/ensure", {
             method: "POST",
             credentials: "include",
@@ -427,12 +445,18 @@ export default function ProjectPage() {
           console.error("Unable to prepare project collaboration", error);
           setApiError(error instanceof Error ? error.message : "ไม่สามารถโหลดข้อมูลโปรเจกต์ได้");
         }
+      } finally {
+        setIsLoading(false);
       }
     }
 
     void prepareProject();
-    return () => controller.abort();
-  }, [coverImage, projectTitle, requestedDeadline, requestedProjectId]);
+    return () => {
+      console.log("[DEBUG] prepareProject useEffect cleanup/abort called");
+      controller.abort();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [requestedDeadline, requestedProjectId]);
 
   const refreshWorkItems = async () => {
     if (!backendProjectId) return;
@@ -686,6 +710,57 @@ export default function ProjectPage() {
     });
   }, [tasks, searchQuery, taskFilterStatus, taskAssigneeFilterId]);
 
+  if (isLoading) {
+    return (
+      <div className="project-room">
+        {/* Navbar skeleton */}
+        <nav className="project-navbar" aria-label="Project navigation">
+          <div className="brand">TeamSync</div>
+          <div className="project-navbar-menu">
+            <Link href="/home">Home</Link>
+            <span className="project-navbar-active" style={{ cursor: "default" }}>Project</span>
+            <span style={{ cursor: "default", opacity: 0.5 }}>Calendar</span>
+          </div>
+          <div className="skeleton-loading" style={{ width: "32px", height: "32px", borderRadius: "50%" }} />
+        </nav>
+
+        {/* Skeleton content */}
+        <div className="project-content project-skeleton-wrapper">
+          <div className="project-skeleton-banner skeleton-loading" />
+          <div className="project-skeleton-header">
+            <div>
+              <div className="project-skeleton-title skeleton-loading" />
+              <div className="project-skeleton-desc skeleton-loading" />
+            </div>
+            <div style={{ display: "flex", gap: "10px" }}>
+              <div className="skeleton-loading" style={{ width: "160px", height: "40px", borderRadius: "999px" }} />
+              <div className="skeleton-loading" style={{ width: "120px", height: "40px", borderRadius: "999px" }} />
+            </div>
+          </div>
+
+          <div className="project-skeleton-stats">
+            <div className="project-skeleton-stat-box skeleton-loading" />
+            <div className="project-skeleton-stat-box skeleton-loading" />
+            <div className="project-skeleton-stat-box skeleton-loading" />
+          </div>
+
+          <div className="project-skeleton-tabs">
+            <div className="project-skeleton-tab skeleton-loading" />
+            <div className="project-skeleton-tab skeleton-loading" />
+            <div className="project-skeleton-tab skeleton-loading" />
+            <div className="project-skeleton-tab skeleton-loading" />
+          </div>
+
+          <div className="project-skeleton-tasks">
+            <div className="project-skeleton-task skeleton-loading" />
+            <div className="project-skeleton-task skeleton-loading" />
+            <div className="project-skeleton-task skeleton-loading" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="project-room" style={dynamicStyle}>
       {/* 1. Navbar */}
@@ -732,14 +807,16 @@ export default function ProjectPage() {
         
         {/* Cover Banner with Overlay Content */}
         <div className="project-cover-banner">
-          <Image
-            src={coverImage}
-            alt="Project cover"
-            fill
-            sizes="100vw"
-            priority
-            style={{ objectFit: "cover" }}
-          />
+          {coverImage && (
+            <Image
+              src={coverImage}
+              alt="Project cover"
+              fill
+              sizes="100vw"
+              priority
+              style={{ objectFit: "cover" }}
+            />
+          )}
           <div className="project-cover-overlay" />
           <div className="project-cover-content">
             <div className="project-header-top">

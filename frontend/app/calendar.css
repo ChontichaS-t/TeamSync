@@ -1125,3 +1125,27 @@
 .dark .calendar-agenda-heading {
   border-bottom-color: #334155;
 }
+
+/* ==========================================
+   Skeleton Loading Styles
+   ========================================== */
+.skeleton-loading {
+  animation: skeleton-pulse 1.5s infinite ease-in-out;
+  background-color: #e2e8f0;
+}
+
+.dark .skeleton-loading {
+  background-color: #334155;
+}
+
+@keyframes skeleton-pulse {
+  0% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.6;
+  }
+}

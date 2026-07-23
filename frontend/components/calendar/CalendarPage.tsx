@@ -60,8 +60,15 @@ export default function CalendarPage() {
   const searchParams = useSearchParams();
   const requestedProjectId = searchParams.get("projectId");
 
-  const [coverImage, setCoverImage] = useState(() => searchParams.get("cover") || "/new/newsea.jpg");
-  const [projectTitle, setProjectTitle] = useState(() => searchParams.get("title") || "Badminton Tournament System");
+  const [coverImage, setCoverImage] = useState(() => {
+    if (requestedProjectId) return "";
+    return searchParams.get("cover") || "/new/newsea.jpg";
+  });
+  const [projectTitle, setProjectTitle] = useState(() => {
+    if (requestedProjectId) return "";
+    return searchParams.get("title") || "Badminton Tournament System";
+  });
+  const [isLoading, setIsLoading] = useState(true);
 
   const activeTheme = useMemo(() => {
     return (THEME_MAP as Record<string, { primary: string; hover: string; shadow: string }>)[coverImage || ""] || {
@@ -119,6 +126,8 @@ export default function CalendarPage() {
         setEvents(result.events);
       } catch (error) {
         if (!(error instanceof DOMException && error.name === "AbortError")) setApiError(error instanceof Error ? error.message : "ไม่สามารถโหลดกิจกรรมได้");
+      } finally {
+        setIsLoading(false);
       }
     }
     void loadEvents();
@@ -275,6 +284,43 @@ export default function CalendarPage() {
     month: "long",
     year: "numeric",
   }).format(selectedDate);
+
+  if (isLoading) {
+    return (
+      <div className="calendar-page-shell">
+        <nav className="project-navbar" aria-label="Project navigation">
+          <div className="brand">TeamSync</div>
+          <div className="project-navbar-menu">
+            <Link href="/home">Home</Link>
+            <span style={{ cursor: "default", opacity: 0.5 }}>Project</span>
+            <span className="project-navbar-active" style={{ cursor: "default" }}>Calendar</span>
+          </div>
+          <div className="skeleton-loading" style={{ width: "32px", height: "32px", borderRadius: "50%" }} />
+        </nav>
+
+        <main className="calendar-page" style={{ padding: "24px", maxWidth: "1200px", margin: "0 auto", width: "100%" }}>
+          <header className="calendar-heading" style={{ display: "flex", justifyContent: "space-between", marginBottom: "30px" }}>
+            <div>
+              <div className="skeleton-loading" style={{ width: "240px", height: "34px", borderRadius: "6px", marginBottom: "8px" }} />
+              <div className="skeleton-loading" style={{ width: "360px", height: "18px", borderRadius: "4px" }} />
+            </div>
+            <div className="skeleton-loading" style={{ width: "140px", height: "40px", borderRadius: "999px" }} />
+          </header>
+
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+            <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+              <div className="skeleton-loading" style={{ width: "34px", height: "34px", borderRadius: "50%" }} />
+              <div className="skeleton-loading" style={{ width: "120px", height: "24px", borderRadius: "4px" }} />
+              <div className="skeleton-loading" style={{ width: "34px", height: "34px", borderRadius: "50%" }} />
+            </div>
+            <div className="skeleton-loading" style={{ width: "160px", height: "34px", borderRadius: "999px" }} />
+          </div>
+
+          <div className="skeleton-loading" style={{ height: "480px", borderRadius: "20px", width: "100%" }} />
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="calendar-page-shell" style={dynamicStyle}>
