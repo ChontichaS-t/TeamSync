@@ -205,11 +205,15 @@ const THEME_MAP = {
   "/new/newdog.jpg": { primary: "#16a34a", hover: "#15803d", shadow: "rgba(22, 163, 74, 0.2)" },
 };
 
+const normalizeProjectDeadline = (deadline: string) =>
+  deadline.replace(/^กำหนดส่ง\s*:?\s*/, "").trim() || "ยังไม่ระบุกำหนดส่ง";
+
 export default function ProjectPage() {
   const searchParams = useSearchParams();
   const coverImage = searchParams.get("cover") || "/new/newsea.jpg";
   const requestedProjectId = searchParams.get("projectId");
   const projectTitle = searchParams.get("title") || "Badminton Tournament System";
+  const requestedDeadline = searchParams.get("deadline") || "กำหนดส่ง 30 กันยายน 2026";
 
   const activeTheme = (THEME_MAP as Record<string, { primary: string; hover: string; shadow: string }>)[coverImage] || {
     primary: "#17211e",
@@ -228,6 +232,7 @@ export default function ProjectPage() {
   const [meetings, setMeetings] = useState<MeetingItem[]>([]);
   const [members, setMembers] = useState<MemberItem[]>([]);
   const [apiError, setApiError] = useState("");
+  const [projectDeadline, setProjectDeadline] = useState(() => normalizeProjectDeadline(requestedDeadline));
   const [backendProjectId, setBackendProjectId] = useState<string | null>(requestedProjectId);
   const [canInviteMembers, setCanInviteMembers] = useState(!requestedProjectId);
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
@@ -301,11 +306,13 @@ export default function ProjectPage() {
 
     async function loadWorkspace(projectId: string) {
       const encoded = encodeURIComponent(projectId);
-      const [memberResult, taskResult, meetingResult] = await Promise.all([
+      const [projectResult, memberResult, taskResult, meetingResult] = await Promise.all([
+        apiFetch<{ deadline: string }>(`/api/projects/${encoded}`, { signal: controller.signal }),
         apiFetch<{ members: Array<{ id: string; displayName: string; role: "owner" | "admin" | "member"; responsibility: string; avatarUrl: string }> }>(`/api/projects/${encoded}/members`, { signal: controller.signal }),
         apiFetch<{ tasks: ApiTask[] }>(`/api/projects/${encoded}/tasks`, { signal: controller.signal }),
         apiFetch<{ meetings: ApiMeeting[] }>(`/api/projects/${encoded}/meetings`, { signal: controller.signal }),
       ]);
+      setProjectDeadline(normalizeProjectDeadline(projectResult.deadline));
       setTasks(taskResult.tasks.map(mapApiTask));
       setMeetings(meetingResult.meetings.map(mapApiMeeting));
       setMembers(memberResult.members.map((member, index) => ({ id: member.id, name: member.displayName, projectRole: member.role, role: member.responsibility || (member.role === "owner" ? "เจ้าของโปรเจกต์" : member.role === "admin" ? "ผู้ดูแลโปรเจกต์" : "สมาชิกทีม"), currentTasks: `กำลังทำ ${taskResult.tasks.filter((task) => task.assignee?.id === member.id && task.status !== "เสร็จแล้ว").length} งาน`, avatarUrl: member.avatarUrl || `/cv${(index % 5) + 1}.png` })));
@@ -313,6 +320,7 @@ export default function ProjectPage() {
 
     async function prepareProject() {
       try {
+        setProjectDeadline(normalizeProjectDeadline(requestedDeadline));
         let projectId = requestedProjectId;
         if (!projectId) {
           const response = await fetch("/api/projects/ensure", {
@@ -325,15 +333,16 @@ export default function ProjectPage() {
               description: "พัฒนาระบบจัดการแข่งขันแบดมินตัน",
               cover: coverImage,
               tags: "blue",
-              deadline: "กำหนดส่ง 30 กันยายน 2026",
+              deadline: `กำหนดส่ง ${normalizeProjectDeadline(requestedDeadline)}`,
               progress: progressPercent,
             }),
             signal: controller.signal,
           });
           if (!response.ok) return;
-          const project = (await response.json()) as { id: string };
+          const project = (await response.json()) as { id: string; deadline: string };
           projectId = project.id;
           setBackendProjectId(project.id);
+          setProjectDeadline(normalizeProjectDeadline(project.deadline));
           setCanInviteMembers(true);
         }
         if (projectId) {
@@ -363,7 +372,7 @@ export default function ProjectPage() {
 
     void prepareProject();
     return () => controller.abort();
-  }, [coverImage, projectTitle, requestedProjectId]);
+  }, [coverImage, projectTitle, requestedDeadline, requestedProjectId]);
 
   const refreshWorkItems = async () => {
     if (!backendProjectId) return;
@@ -676,7 +685,7 @@ export default function ProjectPage() {
                 <h1 className="project-main-title">{projectTitle}</h1>
                 <p className="project-goal-desc">
                   <span><strong>เป้าหมาย:</strong> พัฒนาระบบจัดการแข่งขันแบดมินตัน</span>
-                  <span><strong>กำหนดส่ง:</strong> 30 กันยายน 2026</span>
+                  <span><strong>กำหนดส่ง:</strong> {projectDeadline}</span>
                 </p>
               </div>
 

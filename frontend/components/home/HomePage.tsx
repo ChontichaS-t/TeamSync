@@ -222,7 +222,7 @@ export default function HomePage() {
             return (
               <Link
                 className="project-card"
-                href={`/project?cover=${encodeURIComponent(project.cover)}&title=${encodeURIComponent(project.title)}${project.role && project.id ? `&projectId=${encodeURIComponent(String(project.id))}` : ""}`}
+                href={`/project?cover=${encodeURIComponent(project.cover)}&title=${encodeURIComponent(project.title)}&deadline=${encodeURIComponent(project.deadline)}${project.role && project.id ? `&projectId=${encodeURIComponent(String(project.id))}` : ""}`}
                 aria-label={`Open ${project.title} project`}
                 key={project.id}
               >
