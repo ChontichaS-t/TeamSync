@@ -130,7 +130,7 @@ export function AlertDialogContent({
           zIndex: 1,
           width: maxWidths[size] || maxWidths.default,
           borderRadius: "24px",
-          backgroundColor: "#ffffff",
+          backgroundColor: "var(--alert-dialog-bg, #ffffff)",
           padding: "26px",
           boxShadow: "0 25px 60px rgba(0, 0, 0, 0.2)",
           ...style,
@@ -166,7 +166,7 @@ export function AlertDialogTitle({
   return (
     <h2
       className={cn("text-lg font-bold text-gray-900 tracking-tight", className)}
-      style={{ margin: 0, fontSize: "20px", fontWeight: 700, color: "#17211e", ...style }}
+      style={{ margin: 0, fontSize: "20px", fontWeight: 700, color: "var(--alert-dialog-title-color, #17211e)", ...style }}
       {...props}
     />
   );
@@ -180,7 +180,7 @@ export function AlertDialogDescription({
   return (
     <p
       className={cn("text-sm text-gray-600 leading-relaxed", className)}
-      style={{ margin: "6px 0 0", fontSize: "14px", color: "#68767b", lineHeight: 1.5, ...style }}
+      style={{ margin: "6px 0 0", fontSize: "14px", color: "var(--alert-dialog-desc-color, #68767b)", lineHeight: 1.5, ...style }}
       {...props}
     />
   );
@@ -253,10 +253,10 @@ export function AlertDialogCancel({
       className={cn("modal-cancel-btn", className)}
       style={{
         padding: "9px 18px",
-        border: "1px solid #d1d5db",
+        border: "1px solid var(--alert-dialog-border, #d1d5db)",
         borderRadius: "999px",
         backgroundColor: "transparent",
-        color: "#4b5563",
+        color: "var(--alert-dialog-cancel-color, #4b5563)",
         fontSize: "13px",
         fontWeight: 600,
         cursor: "pointer",

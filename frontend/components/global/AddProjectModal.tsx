@@ -124,15 +124,14 @@ function MiniCalendarPicker({
 
   return (
     <div
+      className="mini-calendar-container"
+      onClick={(e) => e.stopPropagation()}
       style={{
         width: "280px",
         padding: "14px",
-        backgroundColor: "#ffffff",
         borderRadius: "18px",
-        border: "1px solid #e2e8f0",
         boxShadow: "0 14px 36px rgba(15, 23, 42, 0.18)",
       }}
-      onClick={(e) => e.stopPropagation()}
     >
       {/* Header */}
       <div
@@ -146,35 +145,31 @@ function MiniCalendarPicker({
         <button
           type="button"
           onClick={handlePrev}
+          className="mini-calendar-nav"
           style={{
             width: "30px",
             height: "30px",
             display: "grid",
             placeItems: "center",
-            border: "1px solid #e2e8f0",
             borderRadius: "8px",
-            backgroundColor: "#ffffff",
-            color: "#17211e",
             cursor: "pointer",
           }}
         >
           <ChevronLeft style={{ width: 16, height: 16 }} />
         </button>
-        <span style={{ fontWeight: 700, fontSize: "14px", color: "#17211e" }}>
+        <span className="mini-calendar-title" style={{ fontWeight: 700, fontSize: "14px" }}>
           {monthNames[month]} {year}
         </span>
         <button
           type="button"
           onClick={handleNext}
+          className="mini-calendar-nav"
           style={{
             width: "30px",
             height: "30px",
             display: "grid",
             placeItems: "center",
-            border: "1px solid #e2e8f0",
             borderRadius: "8px",
-            backgroundColor: "#ffffff",
-            color: "#17211e",
             cursor: "pointer",
           }}
         >
@@ -229,22 +224,13 @@ function MiniCalendarPicker({
                 e.stopPropagation();
                 onSelectDate(cell.date);
               }}
+              className={`mini-calendar-day-btn ${isSelected ? "selected" : ""} ${isToday ? "today" : ""} ${!cell.isCurrentMonth ? "out-month" : ""}`}
               style={{
                 height: "32px",
                 display: "grid",
                 placeItems: "center",
-                border: isSelected ? "1px solid var(--theme-primary, #17211e)" : "0",
                 borderRadius: "8px",
-                backgroundColor: isSelected
-                  ? "var(--theme-primary, #17211e)"
-                  : isToday
-                  ? "#f1f5f9"
-                  : "transparent",
-                color: isSelected
-                  ? "#ffffff"
-                  : cell.isCurrentMonth
-                  ? "#17211e"
-                  : "#94a3b8",
+                border: isSelected ? "1px solid var(--theme-primary, #17211e)" : "0",
                 fontSize: "12px",
                 fontWeight: isSelected || isToday ? 700 : 500,
                 cursor: "pointer",
@@ -453,11 +439,11 @@ export function AddProjectModal({ isOpen, onClose, onSave, initialData }: AddPro
                 alignItems: "center",
                 justifyContent: "space-between",
                 padding: "12px 16px",
-                border: "1px solid #cbd5e1",
+                border: "1px solid var(--date-picker-border, #cbd5e1)",
                 borderRadius: "12px",
-                backgroundColor: "#f8fafc",
+                backgroundColor: "var(--date-picker-bg, #f8fafc)",
                 fontSize: "14px",
-                color: "#0f172a",
+                color: "var(--date-picker-text, #0f172a)",
                 cursor: "pointer",
                 textAlign: "left",
                 transition: "all 0.18s ease",

@@ -79,6 +79,7 @@ export function Combobox({
           if (!isOpen) setIsFiltering(false);
           setIsOpen(!isOpen);
         }}
+        className="ts-combobox-trigger"
         style={{
           display: "flex",
           flexDirection: "row",
@@ -88,8 +89,6 @@ export function Combobox({
           height: "40px",
           minHeight: "40px",
           padding: "0 14px",
-          backgroundColor: "#ffffff",
-          border: "1px solid #cbd5e1",
           borderRadius: "10px",
           cursor: "pointer",
           boxSizing: "border-box",
@@ -109,6 +108,7 @@ export function Combobox({
           }}
           onFocus={() => setIsOpen(true)}
           placeholder={placeholder}
+          className="ts-combobox-input"
           style={{
             flex: 1,
             width: "100%",
@@ -116,8 +116,6 @@ export function Combobox({
             outline: "none",
             backgroundColor: "transparent",
             fontSize: "13px",
-            color: "#111827",
-            fontWeight: 400,
             padding: 0,
             margin: 0,
           }}
@@ -138,6 +136,7 @@ export function Combobox({
       {/* Floating Dropdown List Overlay */}
       {isOpen && (
         <div
+          className="ts-combobox-dropdown"
           style={{
             position: "absolute",
             top: "calc(100% + 4px)",
@@ -146,8 +145,6 @@ export function Combobox({
             zIndex: 9999,
             maxHeight: "180px",
             overflowY: "auto",
-            backgroundColor: "#ffffff",
-            border: "1px solid #e2e8f0",
             borderRadius: "12px",
             boxShadow: "0 12px 28px rgba(0, 0, 0, 0.12)",
             padding: "4px",
@@ -156,11 +153,11 @@ export function Combobox({
         >
           {filteredOptions.length === 0 ? (
             <div
+              className="ts-combobox-empty"
               style={{
                 padding: "8px 12px",
                 textAlign: "center",
                 fontSize: "13px",
-                color: "#94a3b8",
               }}
             >
               {allowCustomValue ? "ใช้ข้อความที่พิมพ์เป็นรายการใหม่ได้" : "ไม่พบรายการที่ค้นหา"}
@@ -177,6 +174,7 @@ export function Combobox({
                 <div
                   key={opt}
                   onClick={() => handleSelectOption(opt)}
+                  className={`ts-combobox-item ${isSelected ? "selected" : ""}`}
                   style={{
                     display: "flex",
                     flexDirection: "row",
@@ -187,19 +185,7 @@ export function Combobox({
                     cursor: "pointer",
                     fontSize: "13px",
                     fontWeight: isSelected ? 600 : 400,
-                    backgroundColor: isSelected ? "#f1f5f9" : "transparent",
-                    color: "#111827",
                     transition: "background 0.15s ease",
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!isSelected) {
-                      e.currentTarget.style.backgroundColor = "#f8fafc";
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!isSelected) {
-                      e.currentTarget.style.backgroundColor = "transparent";
-                    }
                   }}
                 >
                   <span
@@ -212,17 +198,17 @@ export function Combobox({
                   >
                     <span style={{ whiteSpace: "nowrap" }}>{primaryText}</span>
                     {secondaryText && (
-                      <span style={{ color: "#64748b", fontSize: "11px", fontWeight: 500 }}>
+                      <span className="ts-combobox-secondary-text" style={{ fontSize: "11px", fontWeight: 500 }}>
                         {secondaryText}
                       </span>
                     )}
                   </span>
                   {showCheckmark && isSelected && (
                     <Check
+                      className="ts-combobox-check"
                       style={{
                         width: "14px",
                         height: "14px",
-                        color: "#111827",
                         flexShrink: 0,
                         marginLeft: "8px",
                       }}

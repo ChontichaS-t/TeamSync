@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import Footer from "@/components/global/Footer";
+import { ThemeProvider } from "@/hooks/useTheme";
 import "./globals.css";
 import "./auth.css";
 import "./home.css";
@@ -37,7 +38,27 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" style={{ height: "100%" }}>
+    <html lang="en" style={{ height: "100%" }} suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                try {
+                  var theme = localStorage.getItem('theme');
+                  var isDark = theme === 'dark' || (!theme && window.matchMedia('(prefers-color-scheme: dark)').matches);
+                  var isLoginPage = window.location.pathname.startsWith('/login');
+                  if (isDark && !isLoginPage) {
+                    document.documentElement.classList.add('dark');
+                  } else {
+                    document.documentElement.classList.remove('dark');
+                  }
+                } catch (e) {}
+              })()
+            `,
+          }}
+        />
+      </head>
       <body
         style={{
           display: "flex",
@@ -46,10 +67,12 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           margin: 0,
         }}
       >
-        <div style={{ flex: "1 0 auto", display: "flex", flexDirection: "column", width: "100%" }}>
-          {children}
-        </div>
-        <Footer />
+        <ThemeProvider>
+          <div style={{ flex: "1 0 auto", display: "flex", flexDirection: "column", width: "100%" }}>
+            {children}
+          </div>
+          <Footer />
+        </ThemeProvider>
       </body>
     </html>
   );

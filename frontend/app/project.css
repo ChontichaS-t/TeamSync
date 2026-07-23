@@ -396,6 +396,8 @@
   align-items: center;
   justify-content: space-between;
   gap: 16px;
+  border-top-left-radius: 21px;
+  border-top-right-radius: 21px;
 }
 
 .section-header-title {
@@ -1062,3 +1064,663 @@ textarea.form-input {
   .invite-link-field { grid-template-columns: 1fr; }
   .invite-link-field button { justify-content: center; min-height: 42px; }
 }
+
+/* =========================================================
+   Dark Mode Overrides for Project Page
+   ========================================================= */
+.dark .project-room {
+  background-color: #0f172a;
+  color: #f8fafc;
+}
+
+.dark .project-navbar {
+  background: rgba(15, 23, 42, 0.88);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+.dark .project-navbar .brand {
+  color: #f8fafc;
+}
+
+.dark .project-navbar-menu a {
+  color: #94a3b8;
+}
+
+.dark .project-navbar-menu a:hover {
+  color: #f8fafc;
+  background: #1e293b;
+}
+
+.dark .project-navbar-menu .project-navbar-active {
+  color: #ffffff !important;
+  background: var(--theme-primary, #17211e) !important;
+  box-shadow: 0 4px 14px var(--theme-primary-shadow, rgba(23, 33, 30, 0.25));
+}
+
+.dark .section-block {
+  background: #1e293b;
+  border: 1px solid #334155;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+}
+
+.dark .section-header-bar {
+  background: #1e293b;
+  border-bottom: 1px solid #334155;
+}
+
+.dark .section-header-title {
+  color: #f8fafc;
+}
+
+.dark .section-header-sub {
+  color: #94a3b8;
+}
+
+.dark .ts-table th {
+  background: #0f172a;
+  color: #94a3b8;
+  border-bottom: 1px solid #334155;
+}
+
+.dark .ts-table td {
+  border-bottom: 1px solid #334155;
+  color: #cbd5e1;
+}
+
+.dark .ts-table tr:hover td {
+  background-color: #1e293b;
+}
+
+.dark .task-title {
+  color: #f8fafc;
+}
+
+.dark .task-expected-result {
+  color: #94a3b8;
+}
+
+.dark .task-expected-result span {
+  color: #cbd5e1;
+}
+
+.dark .feedback-status-help {
+  color: #94a3b8;
+}
+
+.dark .member-cell {
+  color: #cbd5e1;
+}
+
+.dark .task-source-title {
+  color: #cbd5e1;
+}
+
+.dark .task-source-date {
+  color: #64748b;
+}
+
+.dark .sec-tab {
+  color: #94a3b8;
+}
+
+.dark .sec-tab:hover {
+  color: #f8fafc;
+  background: #334155;
+}
+
+.dark .sec-tab.active {
+  color: #ffffff !important;
+  background: var(--theme-primary, #17211e) !important;
+  border-color: var(--theme-primary, #17211e) !important;
+  box-shadow: 0 4px 14px var(--theme-primary-shadow, rgba(23, 33, 30, 0.18));
+}
+
+.dark .status-todo { background: #334155; color: #cbd5e1; }
+.dark .status-doing { background: #78350f; color: #fde68a; }
+.dark .status-review { background: #581c87; color: #e9d5ff; }
+.dark .status-done { background: #064e3b; color: #a7f3d0; }
+
+/* Modals & Dialogs */
+.dark .invite-modal-backdrop {
+  background: rgba(15, 23, 42, 0.8);
+}
+
+.dark .invite-modal-card {
+  background: #1e293b;
+  border: 1px solid #334155;
+  box-shadow: 0 28px 70px rgba(0, 0, 0, 0.6);
+}
+
+.dark .invite-modal-header {
+  background: #1e293b;
+  border-bottom: 1px solid #334155;
+}
+
+.dark .invite-modal-header h2 {
+  color: #f8fafc;
+}
+
+.dark .invite-modal-header p {
+  color: #94a3b8;
+}
+
+.dark .invite-modal-close {
+  background: rgba(15, 23, 42, 0.8);
+  color: #94a3b8;
+}
+
+.dark .invite-modal-close:hover {
+  background: #334155;
+  color: #f8fafc;
+}
+
+.dark .invite-info-card {
+  border-color: #1e3a8a;
+  background: #172554;
+  color: #cbd5e1;
+}
+
+.dark .invite-info-card p {
+  color: #94a3b8;
+}
+
+.dark .invite-create-state h3 {
+  color: #f8fafc;
+}
+
+.dark .invite-create-state p {
+  color: #94a3b8;
+}
+
+.dark .invite-link-state label {
+  color: #cbd5e1;
+}
+
+.dark .invite-link-field input {
+  background: #0f172a;
+  border-color: #334155;
+  color: #f8fafc;
+}
+
+.dark .invite-link-field input:focus {
+  border-color: var(--theme-primary, #17211e);
+}
+
+.dark .invite-modal-footer {
+  border-top: 1px solid #334155;
+}
+
+.dark .invite-expiry {
+  color: #94a3b8;
+}
+
+/* Join Project Page */
+.dark .join-project-page {
+  background: #0f172a;
+}
+
+.dark .join-project-nav {
+  border-bottom: 1px solid #334155;
+  background: rgba(15, 23, 42, 0.82);
+}
+
+.dark .join-project-card {
+  border-color: #334155;
+  background: #1e293b;
+  box-shadow: 0 28px 70px rgba(0, 0, 0, 0.6);
+}
+
+.dark .join-project-invalid h1 {
+  color: #f8fafc;
+}
+
+.dark .join-project-invalid p {
+  color: #94a3b8;
+}
+
+.dark .join-project-mark {
+  background: #334155;
+  color: #cbd5e1;
+}
+
+/* Task Detail & Input Styles */
+.dark .task-actions-menu {
+  background: #1e293b;
+  border: 1px solid #334155;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+.dark .task-actions-menu button {
+  color: #cbd5e1;
+}
+
+.dark .task-actions-menu button:hover {
+  background: #334155;
+  color: #f8fafc;
+}
+
+.dark .task-actions-menu button.danger:hover {
+  background: #7f1d1d;
+  color: #fca5a5;
+}
+
+/* Extra overrides for cards and widgets */
+.dark .project-quick-stats {
+  background: rgba(30, 41, 59, 0.9);
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.dark .stat-box {
+  border-right-color: #334155;
+}
+
+.dark .stat-box:hover {
+  background: #334155;
+}
+
+.dark .stat-box-value {
+  color: #f8fafc;
+}
+
+.dark .stat-box-meeting {
+  background: #0f172a;
+}
+
+.dark .stat-progress-track {
+  background: #334155;
+}
+
+.dark .project-section-tabs {
+  border-color: #334155;
+}
+
+.dark .meeting-note-card {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+.dark .meeting-note-card:hover {
+  border-color: #475569;
+}
+
+.dark .meeting-note-card h4 {
+  color: #f8fafc;
+}
+
+.dark .meeting-note-list {
+  color: #cbd5e1;
+}
+
+.dark .meeting-note-agreed {
+  background: #0f172a;
+  color: #f8fafc;
+  box-shadow: none;
+}
+
+.dark .timeline-list {
+  border-left-color: #334155;
+}
+
+.dark .timeline-row::before {
+  box-shadow: 0 0 0 3px #0f172a;
+}
+
+.dark .modal-dialog {
+  background: #1e293b;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6);
+  border: 1px solid #334155;
+}
+
+.dark .modal-title-bar h3 {
+  color: #f8fafc;
+}
+
+.dark .form-label {
+  color: #cbd5e1;
+}
+
+.dark .form-input {
+  background: #0f172a;
+  border-color: #334155;
+  color: #f8fafc;
+  color-scheme: dark;
+}
+
+.dark .form-input:focus {
+  border-color: var(--theme-primary, #17211e);
+}
+
+.dark .join-project-card {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+.dark .join-project-content h1 {
+  color: #f8fafc;
+}
+
+.dark .join-project-meta span {
+  background: #0f172a;
+  color: #cbd5e1;
+}
+
+.dark .join-secondary-button {
+  background: transparent;
+  border-color: #475569;
+  color: #cbd5e1;
+}
+
+/* Date Picker & Dropdown styling */
+.date-picker-trigger {
+  background-color: #ffffff;
+  border: 1px solid #cbd5e1;
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  color: #111827;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+}
+
+.date-picker-trigger:hover {
+  border-color: #0f172a;
+}
+
+.modal-date-picker-trigger {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 14px;
+  height: 40px;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  background-color: #ffffff;
+  font-size: 13px;
+  color: #111827;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.2s ease;
+}
+
+.modal-date-picker-trigger:hover {
+  border-color: #0f172a;
+}
+
+.status-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 999;
+  min-width: 130px;
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12);
+  padding: 4px;
+  transition: background-color 0.2s, border-color 0.2s;
+}
+
+.status-dropdown-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 12px;
+  background-color: transparent;
+  transition: background-color 0.15s;
+}
+
+.status-dropdown-item.active {
+  background-color: #f1f5f9;
+}
+
+.status-dropdown-item:hover {
+  background-color: #f8fafc;
+}
+
+/* Dark mode overrides for these new components */
+.dark .date-picker-trigger {
+  background-color: #0f172a;
+  border-color: #334155;
+  color: #f8fafc;
+}
+
+.dark .date-picker-trigger:hover {
+  border-color: var(--theme-primary, #17211e);
+}
+
+.dark .modal-date-picker-trigger {
+  background-color: #0f172a;
+  border-color: #334155;
+  color: #f8fafc;
+}
+
+.dark .modal-date-picker-trigger:hover {
+  border-color: var(--theme-primary, #17211e);
+}
+
+.dark .status-dropdown-menu {
+  background-color: #1e293b;
+  border-color: #334155;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+}
+
+.dark .status-dropdown-item.active {
+  background-color: #334155;
+}
+
+.dark .status-dropdown-item:hover {
+  background-color: #0f172a;
+}
+
+/* Filter buttons overrides */
+.dark .btn-outline {
+  background: #0f172a;
+  color: #cbd5e1;
+  border-color: #334155;
+}
+
+.dark .btn-outline:hover {
+  background: #1e293b;
+  color: #f8fafc;
+  border-color: var(--theme-primary, #17211e);
+}
+
+.btn-outline.active {
+  background: var(--theme-primary, #17211e) !important;
+  color: #ffffff !important;
+  border-color: var(--theme-primary, #17211e) !important;
+}
+
+.dark .btn-outline.active {
+  background: var(--theme-primary, #17211e) !important;
+  color: #ffffff !important;
+  border-color: var(--theme-primary, #17211e) !important;
+}
+
+/* Mini Calendar styles */
+.mini-calendar-container {
+  background-color: #ffffff;
+  border: 1px solid #e5e7eb;
+}
+
+.mini-calendar-nav {
+  border: 1px solid #e5e7eb;
+  background-color: #ffffff;
+  color: #1e293b;
+}
+
+.mini-calendar-nav:hover {
+  background-color: #f1f5f9;
+}
+
+.mini-calendar-title {
+  color: #1e293b;
+}
+
+.mini-calendar-day-btn {
+  background-color: transparent;
+  color: #1e293b;
+}
+
+.mini-calendar-day-btn.out-month {
+  color: #cbd5e1;
+}
+
+.mini-calendar-day-btn.today {
+  background-color: #f1f5f9;
+  color: #059669;
+}
+
+.mini-calendar-day-btn.selected {
+  background-color: var(--theme-primary, #17211e);
+  color: #ffffff;
+}
+
+.mini-calendar-day-btn:hover:not(.selected) {
+  background-color: #f1f5f9;
+}
+
+/* Dark Mode overrides for Mini Calendar */
+.dark .mini-calendar-container {
+  background-color: #1e293b;
+  border-color: #334155;
+}
+
+.dark .mini-calendar-nav {
+  border-color: #334155;
+  background-color: #0f172a;
+  color: #cbd5e1;
+}
+
+.dark .mini-calendar-nav:hover {
+  background-color: #1e293b;
+  color: #f8fafc;
+}
+
+.dark .mini-calendar-title {
+  color: #f8fafc;
+}
+
+.dark .mini-calendar-day-btn {
+  color: #cbd5e1;
+}
+
+.dark .mini-calendar-day-btn.out-month {
+  color: #475569;
+}
+
+.dark .mini-calendar-day-btn.today {
+  background-color: #0f172a;
+  color: var(--theme-primary, #17211e);
+}
+
+.dark .mini-calendar-day-btn.selected {
+  background-color: var(--theme-primary, #17211e);
+  color: #ffffff;
+}
+
+.dark .mini-calendar-day-btn:hover:not(.selected) {
+  background-color: #334155;
+  color: #f8fafc;
+}
+
+/* Custom Combobox Styles */
+.ts-combobox-trigger {
+  background-color: #ffffff;
+  border: 1px solid #cbd5e1;
+}
+
+.ts-combobox-trigger:hover {
+  border-color: #0f172a;
+}
+
+.ts-combobox-input {
+  color: #111827;
+}
+
+.ts-combobox-dropdown {
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+}
+
+.ts-combobox-empty {
+  color: #94a3b8;
+}
+
+.ts-combobox-item {
+  background-color: transparent;
+  color: #111827;
+}
+
+.ts-combobox-item.selected {
+  background-color: #f1f5f9;
+}
+
+.ts-combobox-item:hover:not(.selected) {
+  background-color: #f8fafc;
+}
+
+.ts-combobox-secondary-text {
+  color: #64748b;
+}
+
+.ts-combobox-check {
+  color: #111827;
+}
+
+/* Dark Mode overrides for Combobox */
+.dark .ts-combobox-trigger {
+  background-color: #0f172a;
+  border-color: #334155;
+}
+
+.dark .ts-combobox-trigger:hover {
+  border-color: var(--theme-primary, #17211e);
+}
+
+.dark .ts-combobox-input {
+  color: #f8fafc;
+}
+
+.dark .ts-combobox-dropdown {
+  background-color: #1e293b;
+  border-color: #334155;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.5);
+}
+
+.dark .ts-combobox-empty {
+  color: #475569;
+}
+
+.dark .ts-combobox-item {
+  color: #cbd5e1;
+}
+
+.dark .ts-combobox-item.selected {
+  background-color: #334155;
+  color: #f8fafc;
+}
+
+.dark .ts-combobox-item:hover:not(.selected) {
+  background-color: #0f172a;
+  color: #f8fafc;
+}
+
+.dark .ts-combobox-secondary-text {
+  color: #94a3b8;
+}
+
+.dark .ts-combobox-check {
+  color: var(--theme-primary, #17211e);
+}
+
+
+

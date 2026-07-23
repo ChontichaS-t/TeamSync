@@ -72,18 +72,17 @@ export function CalendarDemo({ selectedDate, onSelectDate }: CalendarDemoProps =
 
   return (
     <div
+      className="mini-calendar-container"
+      onClick={(e) => e.stopPropagation()}
       style={{
         width: "280px",
         padding: "14px",
-        backgroundColor: "#ffffff",
         borderRadius: "18px",
-        border: "1px solid #e5e7eb",
         boxShadow: "0 14px 36px rgba(0, 0, 0, 0.14)",
         position: "relative",
         zIndex: 9999,
         userSelect: "none",
       }}
-      onClick={(e) => e.stopPropagation()}
     >
       {/* Header Month / Year */}
       <div
@@ -97,35 +96,31 @@ export function CalendarDemo({ selectedDate, onSelectDate }: CalendarDemoProps =
         <button
           type="button"
           onClick={handlePrev}
+          className="mini-calendar-nav"
           style={{
             width: "30px",
             height: "30px",
             display: "grid",
             placeItems: "center",
-            border: "1px solid #e5e7eb",
             borderRadius: "8px",
-            backgroundColor: "#ffffff",
-            color: "#1e293b",
             cursor: "pointer",
           }}
         >
           <ChevronLeft style={{ width: 16, height: 16 }} />
         </button>
-        <span style={{ fontWeight: 700, fontSize: "14px", color: "#1e293b" }}>
+        <span className="mini-calendar-title" style={{ fontWeight: 700, fontSize: "14px" }}>
           {monthNames[month]} {year}
         </span>
         <button
           type="button"
           onClick={handleNext}
+          className="mini-calendar-nav"
           style={{
             width: "30px",
             height: "30px",
             display: "grid",
             placeItems: "center",
-            border: "1px solid #e5e7eb",
             borderRadius: "8px",
-            backgroundColor: "#ffffff",
-            color: "#1e293b",
             cursor: "pointer",
           }}
         >
@@ -180,6 +175,7 @@ export function CalendarDemo({ selectedDate, onSelectDate }: CalendarDemoProps =
                   onSelectDate(cell.date);
                 }
               }}
+              className={`mini-calendar-day-btn ${isSelected ? "selected" : ""} ${isToday ? "today" : ""} ${!cell.isCurrentMonth ? "out-month" : ""}`}
               style={{
                 height: "32px",
                 display: "grid",
@@ -189,18 +185,6 @@ export function CalendarDemo({ selectedDate, onSelectDate }: CalendarDemoProps =
                 borderRadius: "8px",
                 border: "none",
                 cursor: "pointer",
-                backgroundColor: isSelected
-                  ? "var(--theme-primary, #17211e)"
-                  : isToday
-                  ? "#f1f5f9"
-                  : "transparent",
-                color: isSelected
-                  ? "#ffffff"
-                  : !cell.isCurrentMonth
-                  ? "#cbd5e1"
-                  : isToday
-                  ? "#059669"
-                  : "#1e293b",
                 transition: "all 0.15s ease",
               }}
             >

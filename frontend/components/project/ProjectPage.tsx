@@ -122,20 +122,7 @@ function TaskStatusCombobox({
       </button>
 
       {isOpen && (
-        <div
-          style={{
-            position: "absolute",
-            top: "calc(100% + 4px)",
-            left: 0,
-            zIndex: 999,
-            minWidth: "130px",
-            backgroundColor: "#ffffff",
-            border: "1px solid #e2e8f0",
-            borderRadius: "12px",
-            boxShadow: "0 10px 25px rgba(0,0,0,0.12)",
-            padding: "4px",
-          }}
-        >
+        <div className="status-dropdown-menu">
           {statuses.map((st) => (
             <div
               key={st}
@@ -143,22 +130,7 @@ function TaskStatusCombobox({
                 onChange(st);
                 setIsOpen(false);
               }}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                padding: "6px 10px",
-                borderRadius: "8px",
-                cursor: "pointer",
-                fontSize: "12px",
-                backgroundColor: status === st ? "#f1f5f9" : "transparent",
-              }}
-              onMouseEnter={(e) => {
-                if (status !== st) e.currentTarget.style.backgroundColor = "#f8fafc";
-              }}
-              onMouseLeave={(e) => {
-                if (status !== st) e.currentTarget.style.backgroundColor = "transparent";
-              }}
+              className={`status-dropdown-item ${status === st ? "active" : ""}`}
             >
               <span className={`status-pill ${getStatusClass(st)}`}>{st}</span>
             </div>
@@ -800,6 +772,7 @@ export default function ProjectPage() {
                     return (
                       <div
                         key={m.name}
+                        className="member-card"
                         style={{
                           display: "flex",
                           flexDirection: "column",
@@ -808,9 +781,9 @@ export default function ProjectPage() {
                           width: "200px",
                           height: "270px",
                           padding: "16px",
-                          backgroundColor: "#ffffff",
+                          backgroundColor: "var(--member-card-bg, #ffffff)",
                           borderRadius: "24px",
-                          border: "1px solid #e2e8f0",
+                          border: "1px solid var(--member-card-border, #e2e8f0)",
                           boxShadow: "0 10px 25px rgba(0, 0, 0, 0.02), 0 3px 10px rgba(0, 0, 0, 0.01)",
                           justifyContent: "space-between",
                           boxSizing: "border-box",
@@ -826,6 +799,7 @@ export default function ProjectPage() {
                               e.stopPropagation();
                               setActiveMenuMemberName(activeMenuMemberName === m.name ? null : m.name);
                             }}
+                            className="member-menu-trigger"
                             style={{
                               background: "none",
                               border: "none",
@@ -837,8 +811,6 @@ export default function ProjectPage() {
                               borderRadius: "999px",
                               transition: "background-color 0.15s ease",
                             }}
-                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#f1f5f9"}
-                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "transparent"}
                           >
                             <MoreHorizontal style={{ width: 16, height: 16 }} />
                           </button>
@@ -846,14 +818,15 @@ export default function ProjectPage() {
                           {/* Action Dropdown */}
                           {activeMenuMemberName === m.name && (
                             <div
+                              className="member-menu-dropdown"
                               style={{
                                 position: "absolute",
                                 top: "100%",
                                 right: 0,
                                 zIndex: 20,
                                 minWidth: "120px",
-                                backgroundColor: "#ffffff",
-                                border: "1px solid #e2e8f0",
+                                backgroundColor: "var(--member-card-bg, #ffffff)",
+                                border: "1px solid var(--member-card-border, #e2e8f0)",
                                 borderRadius: "12px",
                                 boxShadow: "0 10px 25px rgba(0, 0, 0, 0.12)",
                                 padding: "4px",
@@ -870,23 +843,7 @@ export default function ProjectPage() {
                                   setIsAddMemberModalOpen(true);
                                   setActiveMenuMemberName(null);
                                 }}
-                                style={{
-                                  display: "flex",
-                                  alignItems: "center",
-                                  gap: "8px",
-                                  width: "100%",
-                                  padding: "8px 12px",
-                                  border: "none",
-                                  borderRadius: "8px",
-                                  backgroundColor: "transparent",
-                                  color: "#334155",
-                                  fontSize: "12px",
-                                  fontWeight: 600,
-                                  cursor: "pointer",
-                                  textAlign: "left",
-                                }}
-                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#f1f5f9"}
-                                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "transparent"}
+                                className="member-menu-btn"
                               >
                                 <Edit style={{ width: 14, height: 14 }} />
                                 <span>แก้ไขข้อมูล</span>
@@ -898,24 +855,7 @@ export default function ProjectPage() {
                                   setDeletingMember(m);
                                   setActiveMenuMemberName(null);
                                 }}
-                                style={{
-                                  display: "flex",
-                                  alignItems: "center",
-                                  gap: "8px",
-                                  width: "100%",
-                                  padding: "8px 12px",
-                                  border: "none",
-                                  borderRadius: "8px",
-                                  backgroundColor: "transparent",
-                                  color: "#ef4444",
-                                  fontSize: "12px",
-                                  fontWeight: 600,
-                                  cursor: "pointer",
-                                  textAlign: "left",
-                                  marginTop: "4px",
-                                }}
-                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#fef2f2"}
-                                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "transparent"}
+                                className="member-menu-btn delete-btn"
                               >
                                 <Trash2 style={{ width: 14, height: 14 }} />
                                 <span>ลบสมาชิก</span>
@@ -927,9 +867,9 @@ export default function ProjectPage() {
                         <div
                           style={{
                             fontSize: "11px",
-                            color: "#4e6178",
+                            color: "var(--member-role-color, #4e6178)",
                             fontWeight: 600,
-                            backgroundColor: "#f0f4f8",
+                            backgroundColor: "var(--member-role-bg, #f0f4f8)",
                             padding: "4px 12px",
                             borderRadius: "999px",
                           }}
@@ -954,7 +894,7 @@ export default function ProjectPage() {
                               margin: 0,
                               fontSize: "16px",
                               fontWeight: 900,
-                              color: "#11223e",
+                              color: "var(--member-name-color, #11223e)",
                               letterSpacing: "-0.3px",
                             }}
                           >
@@ -1040,9 +980,9 @@ export default function ProjectPage() {
                   />
                 </div>
                 <div style={{ display: "flex", gap: "6px" }}>
-                  <button onClick={() => setTaskFilterStatus("all")} className="btn-outline" style={{ padding: "4px 10px", fontSize: "11px", height: "auto" }}>ทั้งหมด</button>
-                  <button onClick={() => setTaskFilterStatus("กำลังทำ")} className="btn-outline" style={{ padding: "4px 10px", fontSize: "11px", height: "auto" }}>กำลังทำ</button>
-                  <button onClick={() => setTaskFilterStatus("เสร็จแล้ว")} className="btn-outline" style={{ padding: "4px 10px", fontSize: "11px", height: "auto" }}>เสร็จแล้ว</button>
+                  <button onClick={() => setTaskFilterStatus("all")} className={`btn-outline ${taskFilterStatus === "all" ? "active" : ""}`} style={{ padding: "4px 10px", fontSize: "11px", height: "auto" }}>ทั้งหมด</button>
+                  <button onClick={() => setTaskFilterStatus("กำลังทำ")} className={`btn-outline ${taskFilterStatus === "กำลังทำ" ? "active" : ""}`} style={{ padding: "4px 10px", fontSize: "11px", height: "auto" }}>กำลังทำ</button>
+                  <button onClick={() => setTaskFilterStatus("เสร็จแล้ว")} className={`btn-outline ${taskFilterStatus === "เสร็จแล้ว" ? "active" : ""}`} style={{ padding: "4px 10px", fontSize: "11px", height: "auto" }}>เสร็จแล้ว</button>
                 </div>
               </div>
 
@@ -1074,19 +1014,9 @@ export default function ProjectPage() {
                       <td>{t.assignee}</td>
                       <td>
                         <button
+                          type="button"
+                          className="date-picker-trigger"
                           onClick={() => setEditingTaskId(editingTaskId === t.id ? null : t.id)}
-                          style={{
-                            background: "#ffffff",
-                            border: "1px solid #cbd5e1",
-                            padding: "6px 10px",
-                            borderRadius: "8px",
-                            fontSize: "12px",
-                            color: "#111827",
-                            cursor: "pointer",
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: "6px"
-                          }}
                         >
                           <span>{t.dueDate}</span>
                           <ChevronDown style={{ width: 14, height: 14, color: "#94a3b8" }} />
@@ -1338,22 +1268,8 @@ export default function ProjectPage() {
                   <label className="form-label">กำหนดส่ง</label>
                   <button
                     type="button"
+                    className="modal-date-picker-trigger"
                     onClick={() => setShowTaskCalendar(!showTaskCalendar)}
-                    style={{
-                      width: "100%",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      padding: "0 14px",
-                      height: "40px",
-                      border: "1px solid #cbd5e1",
-                      borderRadius: "10px",
-                      backgroundColor: "#ffffff",
-                      fontSize: "13px",
-                      color: "#111827",
-                      cursor: "pointer",
-                      textAlign: "left",
-                    }}
                   >
                     <span>{formatThaiDate(taskDueDate)}</span>
                     <ChevronDown style={{ width: 16, height: 16, color: "#94a3b8", transform: showTaskCalendar ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.15s ease" }} />
@@ -1428,22 +1344,9 @@ export default function ProjectPage() {
                   <label className="form-label">วันที่ประชุม</label>
                   <button
                     type="button"
+                    className="modal-date-picker-trigger"
                     onClick={() => setShowMeetingCalendar(!showMeetingCalendar)}
-                    style={{
-                      width: "100%",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      padding: "0 14px",
-                      height: "40px",
-                      border: "1px solid #cbd5e1",
-                      borderRadius: "10px",
-                      backgroundColor: "#ffffff",
-                      fontSize: "13px",
-                      color: "#111827",
-                      cursor: "pointer",
-                      textAlign: "left",
-                    }}
+                    style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}
                   >
                     <span style={{ whiteSpace: "nowrap" }}>{formatThaiDate(meetingDate)}</span>
                     <ChevronDown style={{ width: 16, height: 16, flexShrink: 0, color: "#94a3b8", transform: showMeetingCalendar ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.15s ease" }} />

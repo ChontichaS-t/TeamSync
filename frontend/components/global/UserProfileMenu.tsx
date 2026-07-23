@@ -1,8 +1,9 @@
 "use client";
 
-import { ChevronDown, LogOut, UserRound } from "lucide-react";
+import { ChevronDown, LogOut, UserRound, Sun, Moon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { useTheme } from "@/hooks/useTheme";
 
 type UserProfileMenuProps = {
   displayName?: string;
@@ -80,33 +81,46 @@ export function UserProfileMenu({ displayName }: UserProfileMenuProps) {
     router.refresh();
   }
 
+  const { theme, toggleTheme } = useTheme();
+
   return (
-    <div className="home-profile" ref={menuRef}>
+    <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
       <button
-        className="home-profile-trigger"
         type="button"
-        aria-label="Open user menu"
-        aria-haspopup="menu"
-        aria-expanded={isMenuOpen}
-        onClick={() => setIsMenuOpen((isOpen) => !isOpen)}
+        className="theme-toggle-btn"
+        onClick={toggleTheme}
+        aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
       >
-        <span className="home-profile-avatar" aria-hidden="true">
-          <UserRound />
-        </span>
-        <span className="home-profile-name">
-          Hello, {sessionDisplayName || "Team member"}
-        </span>
-        <ChevronDown className="home-profile-chevron" aria-hidden="true" />
+        {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
       </button>
 
-      {isMenuOpen && (
-        <div className="home-profile-menu" role="menu">
-          <button role="menuitem" type="button" onClick={logout} disabled={isLoggingOut}>
-            <LogOut aria-hidden="true" />
-            <span>{isLoggingOut ? "Signing out..." : "Logout"}</span>
-          </button>
-        </div>
-      )}
+      <div className="home-profile" ref={menuRef}>
+        <button
+          className="home-profile-trigger"
+          type="button"
+          aria-label="Open user menu"
+          aria-haspopup="menu"
+          aria-expanded={isMenuOpen}
+          onClick={() => setIsMenuOpen((isOpen) => !isOpen)}
+        >
+          <span className="home-profile-avatar" aria-hidden="true">
+            <UserRound />
+          </span>
+          <span className="home-profile-name">
+            Hello, {sessionDisplayName || "Team member"}
+          </span>
+          <ChevronDown className="home-profile-chevron" aria-hidden="true" />
+        </button>
+
+        {isMenuOpen && (
+          <div className="home-profile-menu" role="menu">
+            <button role="menuitem" type="button" onClick={logout} disabled={isLoggingOut}>
+              <LogOut aria-hidden="true" />
+              <span>{isLoggingOut ? "Signing out..." : "Logout"}</span>
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
